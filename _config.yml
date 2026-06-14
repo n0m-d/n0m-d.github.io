@@ -1,0 +1,17 @@
+# Astro site — not a Jekyll project.
+# If you see Jekyll errors on .astro files, set GitHub Pages source to
+# "GitHub Actions" (Settings → Pages → Build and deployment → Source).
+exclude:
+  - node_modules
+  - src
+  - dist
+  - public
+  - .astro
+  - .github
+  - astro.config.mjs
+  - package.json
+  - package-lock.json
+  - bun.lock
+  - tsconfig.json
+  - wrangler.toml
+  - README.md

@@ -1,0 +1,237 @@
+---
+title: Project Setup
+description: Step-by-step guide to setting up your documentation project with Void.
+---
+
+# Project Setup
+
+Get your documentation site up and running in minutes. This guide covers everything from initial setup to your first deployment.
+
+## Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js** 18+ or **Bun** 1.0+ installed
+- **Git** for version control
+- A code editor (VS Code recommended)
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/yourusername/void.git
+cd void
+```
+
+### 2. Install Dependencies
+
+Using Bun (recommended):
+```bash
+bun install
+```
+
+Using npm:
+```bash
+npm install
+```
+
+### 3. Start Development Server
+
+```bash
+bun run dev
+```
+
+Your site will be available at `http://localhost:4321`
+
+## Project Structure
+
+```
+void/
+├── src/
+│   ├── assets/           # Images, fonts, and static files
+│   ├── components/       # Reusable Astro components
+│   │   ├── override-components/  # Starlight component overrides
+│   │   └── user-components/    # Custom components
+│   ├── config/          # Configuration files
+│   │   ├── config.json     # Site metadata
+│   │   ├── sidebar.json    # Navigation structure
+│   │   ├── menu.en.json    # Menu configuration
+│   │   ├── social.json     # Social links
+│   │   └── locals.json     # Localization
+│   ├── content/
+│   │   └── docs/        # Documentation content
+│   │       ├── getting-started/
+│   │       ├── reference/
+│   │       └── index.mdx
+│   └── styles/          # Global CSS styles
+├── public/              # Static public assets
+├── astro.config.mjs     # Astro configuration
+└── package.json
+```
+
+## Configuration
+
+### Site Configuration
+
+Edit `src/config/config.json` to customize your site:
+
+```json
+{
+  "site": {
+    "title": "Void Documentation",
+    "description": "AppSec research and notes",
+    "logo": "/src/assets/hero-icon.svg",
+    "logo_darkmode": "/src/assets/hero-icon.svg"
+  },
+  "footer": {
+    "copyright": "Void — AppSec Research"
+  }
+}
+```
+
+### Navigation Setup
+
+Configure sidebar navigation in `src/config/sidebar.json`:
+
+```json
+{
+  "main": [
+    {
+      "label": "Documentation",
+      "items": [
+        {
+          "label": "[seti:vite] Introduction",
+          "autogenerate": {
+            "directory": "getting-started/introduction"
+          }
+        },
+      ]
+    }
+  ]
+}
+```
+
+### Social Links
+
+Add social links in `src/config/social.json`:
+
+```json
+{
+  "main": [
+    {
+      "icon": "github",
+      "label": "GitHub",
+      "href": "https://github.com/yourusername"
+    },
+    {
+      "icon": "twitter",
+      "label": "Twitter",
+      "href": "https://twitter.com/yourusername"
+    }
+  ]
+}
+```
+
+## Creating Content
+
+### Adding Pages
+
+Create `.mdx` files in `src/content/docs/`:
+
+```markdown
+---
+title: Your Page Title
+description: Brief description for SEO
+---
+
+# Your Content
+
+Write your documentation here using Markdown and MDX.
+```
+
+### Using Components
+
+Import and use custom components:
+
+```mdx
+import Card from "~/components/user-components/NewCard.astro";
+
+<Card title="Feature Card" icon="rocket">
+  Your card content here
+</Card>
+```
+
+## Building for Production
+
+### Static Build
+
+```bash
+bun run build
+```
+
+Output will be in the `dist/` directory.
+
+### Preview Production Build
+
+```bash
+bun run preview
+```
+
+### Deploy to Cloudflare Workers
+
+```bash
+bun run deploy:cf-workers
+```
+
+## Development Workflow
+
+### Hot Reload
+
+The development server supports hot reloading. Changes to:
+- Content files (`.mdx`, `.md`) → Instant refresh
+- Components (`.astro`) → Fast refresh
+- Config files → May require restart
+
+### Adding Images
+
+Place images in `src/assets/` and reference them:
+
+```mdx
+![Alt text](/src/assets/your-image.png)
+```
+
+Or use the ImageMod component:
+
+```mdx
+import ImageMod from "~/components/ImageMod.astro";
+
+<ImageMod
+  src="/src/assets/your-image.png"
+  alt="Description"
+  width={800}
+  height={400}
+/>
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Vite module resolution errors**
+```bash
+rm -rf .astro node_modules/.vite
+bun run dev
+```
+
+**Build fails with content errors**
+- Check frontmatter syntax in `.mdx` files
+- Verify all imported components exist
+
+**Styles not applying**
+- Ensure `global.css` is properly linked in `astro.config.mjs`
+- Check Tailwind CSS configuration
+
+---
+
+*For advanced configuration, see the [Reference](/reference/configuration) section.*

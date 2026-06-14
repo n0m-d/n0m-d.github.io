@@ -1,0 +1,30 @@
+{
+  "main": [
+    {
+      "label": "Getting Started",
+      "items": [
+        {
+          "label": "[seti:vite] Introduction",
+          "autogenerate": {
+            "directory": "getting-started/introduction"
+          }
+        }
+      ]
+    },
+    {
+      "label": "PentesterLab",
+      "items": [
+        {
+          "label": "[seti:json] Overview",
+          "slug": "pentesterlab/introduction/overview"
+        },
+        {
+          "label": "[seti:odata] Capture The Flag",
+          "autogenerate": {
+            "directory": "pentesterlab/capture-the-flag"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+/* Faster Starlight page transitions without removing motion */
+@media (prefers-reduced-motion: no-preference) {
+  :active-view-transition-type(forward)::view-transition-new(main),
+  :active-view-transition-type(backward)::view-transition-new(main) {
+    animation-duration: 0.18s;
+  }
+
+  :active-view-transition-type(forward)::view-transition-old(title),
+  :active-view-transition-type(forward)::view-transition-new(title),
+  :active-view-transition-type(backward)::view-transition-old(title),
+  :active-view-transition-type(backward)::view-transition-new(title) {
+    animation-duration: 0.22s;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.hidden-tab *,
+  html.hidden-tab *::before,
+  html.hidden-tab *::after {
+    animation-play-state: paused !important;
+  }
+}

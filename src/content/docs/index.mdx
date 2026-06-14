@@ -1,0 +1,44 @@
+---
+title: Home
+description: Application security notes, lab write-ups, and research references.
+template: splash
+hero:
+  title: |
+    Application Security
+    <span class="light-text">Notes & References</span>
+---
+
+import Section from "~/components/Section.astro";
+import Grid from "~/components/user-components/Grid.astro";
+import LinkButton from "~/components/LinkButton.astro";
+import ListCard from "~/components/user-components/ListCard.astro";
+
+<Section title="Explore <span class='light-text'>the archive</span>" description="Field notes, lab sessions, and tooling from security research.">
+
+<Grid columns={3}>
+  <ListCard title="Field Notes" imageIcon="/src/assets/code-block.svg" number="1">
+  - Walkthroughs and methodology
+  - Step-by-step reconstructions
+  - Annotated findings
+
+  <LinkButton href="/getting-started/introduction/overview/" variant="text" className="mt-6 mb-8 ml-4">Read notes</LinkButton>
+  </ListCard>
+
+  <ListCard title="Lab Sessions" imageIcon="/src/assets/element.svg" number="2">
+  - CTF and guided exercises
+  - Challenge write-ups
+  - Flag chains and session logs
+
+  <LinkButton href="/pentesterlab/introduction/overview/" variant="text" className="mt-6 mb-8 ml-4">Browse labs</LinkButton>
+  </ListCard>
+
+  <ListCard title="Tooling" imageIcon="/src/assets/changelogs.svg" number="3">
+  - Scripts and utilities
+  - Research repos
+  - Setup references
+
+  <LinkButton href="/tools/" variant="text" className="mt-6 mb-8 ml-4">View tools</LinkButton>
+  </ListCard>
+</Grid>
+
+</Section>

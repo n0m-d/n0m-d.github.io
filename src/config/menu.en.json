@@ -1,0 +1,18 @@
+{
+  "main": [
+    {
+      "name": "Home",
+      "url": "/"
+    },
+    {
+      "name": "Notes",
+      "url": "/getting-started/introduction/overview/"
+    },
+    {
+      "name": "About",
+      "url": "/about/"
+    }
+  ],
+  "footer": {
+  }
+}

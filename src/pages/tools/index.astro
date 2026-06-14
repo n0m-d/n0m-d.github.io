@@ -1,0 +1,880 @@
+---
+import {
+  getTools,
+  getLanguages,
+  getLanguageCounts,
+  getTopics,
+  getLangColor,
+  getToolSearchText,
+  formatPublishedAt,
+  GITHUB_OWNER,
+  type Tool,
+} from '../../data/tools';
+import profilePic from '../../assets/me.jpeg';
+
+const owner = 'n0m-d';
+const tools = getTools();
+const languages = getLanguages();
+const langCounts = getLanguageCounts();
+const topics = getTopics();
+const defaultPerPage = 5;
+---
+
+<!DOCTYPE html>
+<html lang="en" data-color-mode="dark" data-dark-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{owner} / tools</title>
+    <meta name="description" content="Utilities and dashboards maintained by n0m-d." />
+    <style>
+      :root {
+        --header-bg: #010409;
+        --bg-default: #0d1117;
+        --bg-muted: #161b22;
+        --bg-inset: #010409;
+        --bg-subtle: #151b23;
+        --border-default: #3d444d;
+        --border-muted: #21262d;
+        --border-subtle: rgba(240, 246, 252, 0.1);
+        --fg-default: #e6edf3;
+        --fg-muted: #9198a1;
+        --fg-subtle: #656d76;
+        --accent-fg: #4493f8;
+        --accent-emphasis: #1f6feb;
+        --success-fg: #3fb950;
+        --danger-fg: #f85149;
+        --attention-fg: #d29922;
+        --tab-accent: #f78166;
+        --btn-bg: #21262d;
+        --btn-border: rgba(240, 246, 252, 0.1);
+        --btn-hover-bg: #30363d;
+        --btn-primary-bg: #238636;
+        --btn-primary-hover: #2ea043;
+        --btn-primary-border: rgba(240, 246, 252, 0.1);
+        --shadow-inset: inset 0 1px 0 0 rgba(208, 215, 222, 0.08);
+        --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+        --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+        --page-width: 1280px;
+        --sidebar-width: 296px;
+      }
+
+      @media (prefers-color-scheme: light) {
+        html[data-color-mode='auto'] {
+          --header-bg: #24292f;
+          --bg-default: #ffffff;
+          --bg-muted: #f6f8fa;
+          --bg-inset: #ffffff;
+          --bg-subtle: #f6f8fa;
+          --border-default: #d0d7de;
+          --border-muted: #d8dee4;
+          --border-subtle: rgba(27, 31, 36, 0.15);
+          --fg-default: #1f2328;
+          --fg-muted: #656d76;
+          --fg-subtle: #6e7781;
+          --accent-fg: #0969da;
+          --accent-emphasis: #0550ae;
+          --btn-bg: #f6f8fa;
+          --btn-border: rgba(27, 31, 36, 0.15);
+          --btn-hover-bg: #eef1f4;
+          --btn-primary-bg: #1f883d;
+          --btn-primary-hover: #1a7f37;
+          --shadow-inset: inset 0 1px 0 0 rgba(31, 35, 40, 0.04);
+        }
+      }
+
+      *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        min-height: 100vh;
+        background: var(--bg-default);
+        color: var(--fg-default);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a { color: var(--accent-fg); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      /* ── App header (github.com global) ── */
+      .AppHeader {
+        background: var(--header-bg);
+        padding: 16px;
+        color: var(--fg-default);
+      }
+
+      .AppHeader-inner {
+        max-width: var(--page-width);
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .AppHeader-logo {
+        display: flex;
+        color: var(--fg-default);
+        line-height: 0;
+      }
+      .AppHeader-logo:hover { opacity: 0.85; text-decoration: none; }
+
+      .AppHeader-context {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        color: var(--fg-default);
+        font-weight: 600;
+        font-size: 14px;
+      }
+      .AppHeader-context .sep { color: var(--fg-subtle); font-weight: 400; padding: 0 4px; }
+      .AppHeader-context a { color: var(--fg-default); font-weight: 600; }
+      .AppHeader-context a:hover { color: var(--accent-fg); text-decoration: none; }
+      .AppHeader-context .current { color: var(--fg-muted); font-weight: 400; }
+
+      .AppHeader-search {
+        flex: 1;
+        max-width: 272px;
+        margin-left: 8px;
+        position: relative;
+      }
+      .AppHeader-search input {
+        width: 100%;
+        height: 32px;
+        padding: 5px 12px 5px 32px;
+        font: inherit;
+        font-size: 14px;
+        color: var(--fg-default);
+        background: var(--bg-default);
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        box-shadow: var(--shadow-inset);
+        outline: none;
+      }
+      .AppHeader-search input:focus {
+        border-color: var(--accent-fg);
+        outline: 2px solid rgba(68, 147, 248, 0.3);
+        outline-offset: 0;
+      }
+      .AppHeader-search input::placeholder { color: var(--fg-muted); }
+      .AppHeader-search svg {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        fill: var(--fg-muted);
+      }
+      .AppHeader-search kbd {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-family: var(--font-sans);
+        font-size: 12px;
+        color: var(--fg-muted);
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        padding: 0 5px;
+        line-height: 18px;
+        background: var(--bg-muted);
+      }
+
+      /* ── Page layout ── */
+      .page-wrap {
+        max-width: var(--page-width);
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+
+      @media (min-width: 1012px) {
+        .page-wrap {
+          grid-template-columns: var(--sidebar-width) 1fr;
+          gap: 24px;
+        }
+      }
+
+      /* ── Profile sidebar ── */
+      .profile {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .profile-avatar {
+        width: 230px;
+        height: 230px;
+        max-width: 100%;
+        border-radius: 50%;
+        border: 1px solid var(--border-default);
+        background: var(--bg-muted);
+        object-fit: cover;
+        display: block;
+        margin: 0 auto;
+      }
+      @media (min-width: 1012px) {
+        .profile-avatar { margin: 0; }
+      }
+
+      .profile-name {
+        font-size: 24px;
+        line-height: 1.25;
+        font-weight: 600;
+        text-align: center;
+      }
+      @media (min-width: 1012px) {
+        .profile-name { text-align: left; }
+      }
+
+      .profile-bio {
+        color: var(--fg-muted);
+        text-align: center;
+      }
+      @media (min-width: 1012px) {
+        .profile-bio { text-align: left; }
+      }
+
+      /* ── Main column ── */
+      .profile-main { min-width: 0; }
+
+      /* underline tabs */
+      .UnderlineNav {
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--border-muted);
+        margin-bottom: 16px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .UnderlineNav-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px 16px;
+        margin-bottom: -1px;
+        color: var(--fg-default);
+        font-size: 14px;
+        white-space: nowrap;
+        border-bottom: 2px solid transparent;
+        text-decoration: none;
+      }
+      .UnderlineNav-item:hover {
+        border-bottom-color: var(--border-muted);
+        text-decoration: none;
+      }
+      .UnderlineNav-item.is-selected {
+        font-weight: 600;
+        border-bottom-color: var(--tab-accent);
+        color: var(--fg-default);
+      }
+      .UnderlineNav-item .Counter {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--fg-default);
+        background: rgba(110, 118, 129, 0.2);
+        border: 1px solid transparent;
+        border-radius: 2em;
+      }
+
+      /* repo toolbar */
+      .repos-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .repos-search {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+      }
+      .repos-search input {
+        width: 100%;
+        height: 32px;
+        padding: 5px 12px 5px 32px;
+        font: inherit;
+        font-size: 14px;
+        color: var(--fg-default);
+        background: var(--bg-default);
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        box-shadow: var(--shadow-inset);
+        outline: none;
+      }
+      .repos-search input:focus {
+        border-color: var(--accent-fg);
+        outline: 2px solid rgba(68, 147, 248, 0.3);
+      }
+      .repos-search input::placeholder { color: var(--fg-muted); }
+      .repos-search svg {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        fill: var(--fg-muted);
+      }
+
+      .repos-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 32px;
+        padding: 0 12px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 20px;
+        white-space: nowrap;
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .btn:hover { text-decoration: none; }
+
+      .btn-default {
+        color: var(--fg-default);
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        box-shadow: var(--shadow-inset);
+      }
+      .btn-default:hover { background: var(--btn-hover-bg); border-color: var(--border-default); }
+
+      .btn-primary {
+        color: #ffffff;
+        background: var(--btn-primary-bg);
+        border: 1px solid var(--btn-primary-border);
+        box-shadow: var(--shadow-inset);
+      }
+      .btn-primary:hover { background: var(--btn-primary-hover); color: #fff; }
+
+      .btn-sm {
+        height: 28px;
+        padding: 0 10px;
+        font-size: 12px;
+      }
+
+      /* filter row */
+      .repos-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .SelectMenu-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 32px;
+        padding: 0 12px;
+        font: inherit;
+        font-size: 14px;
+        color: var(--fg-default);
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        border-radius: 6px;
+        box-shadow: var(--shadow-inset);
+        cursor: pointer;
+      }
+      .SelectMenu-button:hover { background: var(--btn-hover-bg); }
+      .SelectMenu-button.is-active {
+        border-color: var(--accent-fg);
+        color: var(--accent-fg);
+      }
+
+      .SelectMenu {
+        position: relative;
+      }
+      .SelectMenu summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      .SelectMenu summary::-webkit-details-marker { display: none; }
+
+      .SelectMenu-modal {
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        z-index: 99;
+        min-width: 220px;
+        padding: 8px 0;
+        background: var(--bg-muted);
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+
+      .SelectMenu-header {
+        padding: 8px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--fg-muted);
+        border-bottom: 1px solid var(--border-muted);
+        margin-bottom: 4px;
+      }
+
+      .SelectMenu-list {
+        list-style: none;
+        max-height: 280px;
+        overflow-y: auto;
+      }
+
+      .SelectMenu-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 16px;
+        font: inherit;
+        font-size: 14px;
+        color: var(--fg-default);
+        background: transparent;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+      }
+      .SelectMenu-item:hover { background: var(--accent-emphasis); color: #fff; }
+      .SelectMenu-item.is-selected {
+        font-weight: 600;
+        background: rgba(68, 147, 248, 0.12);
+      }
+      .SelectMenu-item.is-selected::before {
+        content: '✓';
+        margin-right: 8px;
+        color: var(--accent-fg);
+        font-size: 12px;
+      }
+      .SelectMenu-item-count {
+        font-size: 12px;
+        color: var(--fg-muted);
+        background: rgba(110, 118, 129, 0.2);
+        padding: 0 6px;
+        border-radius: 2em;
+        line-height: 18px;
+      }
+      .SelectMenu-item:hover .SelectMenu-item-count {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .repos-pagination {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 16px 0 8px;
+        border-top: 1px solid var(--border-muted);
+        margin-top: 8px;
+      }
+
+      .repos-pagination-info {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        font-size: 14px;
+        color: var(--fg-muted);
+      }
+
+      .repos-pagination-info label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .repos-pagination-info select {
+        height: 32px;
+        padding: 0 28px 0 12px;
+        font: inherit;
+        font-size: 14px;
+        color: var(--fg-default);
+        background: var(--btn-bg);
+        border: 1px solid var(--btn-border);
+        border-radius: 6px;
+        box-shadow: var(--shadow-inset);
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='%239198a1'%3E%3Cpath d='M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+      }
+      .repos-pagination-info select:focus {
+        border-color: var(--accent-fg);
+        outline: 2px solid rgba(68, 147, 248, 0.3);
+      }
+
+      .repos-pagination-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .repos-pagination-nav .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        pointer-events: none;
+      }
+
+      .page-indicator {
+        font-size: 14px;
+        color: var(--fg-muted);
+        padding: 0 8px;
+        min-width: 100px;
+        text-align: center;
+      }
+
+      /* repo list */
+      #repos-list {
+        list-style: none;
+      }
+
+      .repo-item {
+        padding: 24px 0;
+        border-top: 1px solid var(--border-muted);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .repo-item:first-child { border-top: none; padding-top: 8px; }
+
+      .repo-item-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+      }
+
+      .repo-title {
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 1.25;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .repo-title a { font-weight: 600; }
+      .repo-title .owner { color: var(--fg-muted); font-weight: 400; }
+      .repo-title .owner:hover { color: var(--accent-fg); text-decoration: none; }
+      .repo-title .slash { color: var(--fg-muted); font-weight: 400; }
+
+      .repo-desc {
+        color: var(--fg-muted);
+        font-size: 14px;
+        max-width: 80ch;
+      }
+
+      .repo-topics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .topic-tag {
+        display: inline-block;
+        padding: 0 10px;
+        font-size: 12px;
+        line-height: 22px;
+        color: var(--accent-fg);
+        background: rgba(68, 147, 248, 0.1);
+        border: 1px solid rgba(68, 147, 248, 0.3);
+        border-radius: 2em;
+        text-decoration: none;
+      }
+      .topic-tag:hover {
+        background: rgba(68, 147, 248, 0.2);
+        text-decoration: none;
+      }
+
+      .repo-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+
+      .repo-lang {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .repo-lang-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #3178c6;
+      }
+
+      .repo-empty {
+        padding: 48px 16px;
+        text-align: center;
+        color: var(--fg-muted);
+        border-top: 1px solid var(--border-muted);
+      }
+
+      .repo-visibility {
+        font-size: 12px;
+        color: var(--fg-muted);
+        text-transform: capitalize;
+      }
+
+      .repo-license {
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+
+      .repo-archived {
+        display: inline-block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--attention-fg);
+        border: 1px solid color-mix(in srgb, var(--attention-fg) 40%, transparent);
+        border-radius: 2em;
+        padding: 0 8px;
+        line-height: 20px;
+      }
+
+      .repo-item.is-filtered-out,
+      .repo-item[hidden] {
+        display: none !important;
+      }
+
+      .SelectMenu.has-filter summary {
+        border-color: var(--accent-fg);
+        color: var(--accent-fg);
+      }
+
+      /* site footer */
+      .footer {
+        max-width: var(--page-width);
+        margin: 0 auto;
+        padding: 24px 16px 40px;
+        border-top: 1px solid var(--border-muted);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+      .footer-logo { color: var(--fg-muted); line-height: 0; }
+      .footer-logo:hover { color: var(--fg-subtle); text-decoration: none; }
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        list-style: none;
+      }
+      .footer-links a { color: var(--fg-muted); }
+      .footer-links a:hover { color: var(--accent-fg); text-decoration: underline; }
+      .footer-copy { margin-left: auto; }
+
+      @media (max-width: 768px) {
+        .AppHeader-search kbd { display: none; }
+        .AppHeader-search { max-width: none; }
+        .repos-actions .btn-default { display: none; }
+        .profile-avatar { width: 180px; height: 180px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="AppHeader">
+      <div class="AppHeader-inner">
+        <a href="/" class="AppHeader-logo" aria-label="Home">
+          <svg height="32" width="32" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
+          </svg>
+        </a>
+
+        <div class="AppHeader-context">
+          <a href="/tools/">{owner}</a>
+          <span class="sep">/</span>
+          <span class="current">tools</span>
+        </div>
+
+        <label class="AppHeader-search" for="header-search">
+          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+          </svg>
+          <input id="header-search" type="search" placeholder="Type / to search" autocomplete="off" />
+          <kbd>/</kbd>
+        </label>
+      </div>
+    </header>
+
+    <div class="page-wrap">
+      <aside class="profile">
+        <img
+          class="profile-avatar"
+          src={profilePic.src}
+          alt={`${owner} profile picture`}
+          width={230}
+          height={230}
+          loading="eager"
+        />
+        <h1 class="profile-name">{owner}</h1>
+        <p class="profile-bio">Security research ledger — notes, labs, and tooling.</p>
+      </aside>
+
+      <div class="profile-main" id="tools-root">
+        <nav class="UnderlineNav" aria-label="User profile">
+          <a class="UnderlineNav-item" href="/">Overview</a>
+          <a class="UnderlineNav-item is-selected" href="/tools/" aria-current="page">
+            Repositories
+            <span class="Counter" id="repo-counter">{tools.length}</span>
+          </a>
+          <a class="UnderlineNav-item" href="/about/">About</a>
+          <a class="UnderlineNav-item" href="/getting-started/introduction/overview/">Packages</a>
+        </nav>
+
+        <div class="repos-toolbar">
+          <label class="repos-search" for="repo-search">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+            </svg>
+            <input id="repo-search" type="search" placeholder="Find a repository…" autocomplete="off" />
+          </label>
+          <div class="repos-actions">
+            <details class="SelectMenu" id="lang-menu">
+              <summary class="SelectMenu-button btn btn-default">
+                <span id="lang-menu-label">Language</span>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg>
+              </summary>
+              <div class="SelectMenu-modal">
+                <div class="SelectMenu-header">Filter by language</div>
+                <ul class="SelectMenu-list" id="lang-list">
+                  <li>
+                    <button type="button" class="SelectMenu-item is-selected" data-lang="all">
+                      All languages
+                      <span class="SelectMenu-item-count">{tools.length}</span>
+                    </button>
+                  </li>
+                  {languages.map((lang) => (
+                    <li>
+                      <button type="button" class="SelectMenu-item" data-lang={lang}>
+                        {lang}
+                        <span class="SelectMenu-item-count">{langCounts[lang]}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </details>
+            <a href="/getting-started/introduction/overview/" class="btn btn-primary">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>
+              New
+            </a>
+          </div>
+        </div>
+
+        <div class="repos-filters" id="topic-filters">
+          <button type="button" class="SelectMenu-button is-active" data-filter="all">All</button>
+          {topics.map((topic) => (
+            <button type="button" class="SelectMenu-button" data-filter={topic}>{topic}</button>
+          ))}
+        </div>
+
+        <ul id="repos-list">
+          {tools.map((tool: Tool) => (
+            <li
+              class="repo-item"
+              data-id={tool.name}
+              data-topics={tool.topics.join(' ')}
+              data-lang={tool.language}
+              data-search={getToolSearchText(tool)}
+            >
+              <div class="repo-item-header">
+                <h3 class="repo-title">
+                  <a
+                    href={`https://github.com/${GITHUB_OWNER}`}
+                    class="owner"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >{owner}</a><span class="slash">/</span>
+                  <a href={tool.github} target="_blank" rel="noopener noreferrer">{tool.name}</a>
+                  {tool.archived && <span class="repo-archived">Archived</span>}
+                </h3>
+              </div>
+              {tool.description && <p class="repo-desc">{tool.description}</p>}
+              <div class="repo-topics">
+                {tool.topics.map((topic) => (
+                  <a href="#" class="topic-tag" data-topic={topic}>{topic}</a>
+                ))}
+              </div>
+              <div class="repo-meta">
+                <span class="repo-lang">
+                  <span class="repo-lang-dot" style={`background: ${getLangColor(tool.language)}`}></span>
+                  {tool.language}
+                </span>
+                {tool.license && <span class="repo-license">{tool.license}</span>}
+                <span class="repo-visibility">{tool.visibility}</span>
+                <time datetime={tool.publishedAt}>Published {formatPublishedAt(tool.publishedAt)}</time>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div class="repo-empty" id="repo-empty" hidden>No repositories match your search.</div>
+
+        <div class="repos-pagination" id="repos-pagination">
+          <div class="repos-pagination-info">
+            <label for="per-page">
+              Per page
+              <select id="per-page" aria-label="Repositories per page">
+                <option value="3">3</option>
+                <option value="5" selected>5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+              </select>
+            </label>
+            <span id="page-range">Showing 1–{Math.min(defaultPerPage, tools.length)} of {tools.length}</span>
+          </div>
+          <div class="repos-pagination-nav">
+            <button type="button" class="btn btn-default btn-sm" id="prev-page" disabled>Previous</button>
+            <span id="page-indicator">Page 1 of {Math.ceil(tools.length / defaultPerPage)}</span>
+            <button type="button" class="btn btn-default btn-sm" id="next-page">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <a href="/" class="footer-logo" aria-label="n0m-d">
+        <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+      </a>
+      <ul class="footer-links">
+        <li><a href="/about/">About</a></li>
+        <li><a href="/getting-started/introduction/overview/">Docs</a></li>
+        <li><a href="/tools/">Tools</a></li>
+      </ul>
+      <span class="footer-copy">© 2026 {owner}</span>
+    </footer>
+
+    <script>
+      import { bootToolsPage } from '../../scripts/tools-page.ts';
+
+      bootToolsPage({ defaultPerPage: 5 });
+      document.addEventListener('astro:page-load', () => bootToolsPage({ defaultPerPage: 5 }));
+    </script>
+  </body>
+</html>

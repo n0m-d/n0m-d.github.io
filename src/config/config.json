@@ -1,0 +1,29 @@
+{
+  "site": {
+    "title": "無",
+    "logo": "/src/assets/logo-light.svg",
+    "logo_darkmode": "/src/assets/logo-dark.svg",
+    "logo_width": "127",
+    "logo_height": "32",
+    "logo_text": "無"
+  },
+
+  "settings": {
+    "search": true,
+    "theme_switcher": true
+  },
+
+  "params": {
+    "footer_contact": {
+      "enable": false,
+      "action": "#"
+    },
+    "copyright": "&mdash"
+  },
+
+  "navigation_button": {
+    "enable": false,
+    "label": "Tools",
+    "link": "/tools/"
+  }
+}
