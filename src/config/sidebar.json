@@ -25,6 +25,27 @@
           }
         }
       ]
+    },
+    {
+      "label": "CWEE Prep Track",
+      "items": [
+        {
+          "label": "[seti:json] Overview",
+          "slug": "cwee-prep-track/introduction/overview"
+        },
+        {
+          "label": "[seti:sbt] Boxes",
+          "autogenerate": {
+            "directory": "cwee-prep-track/boxes"
+          }
+        },
+        {
+          "label": "[seti:jinja] Challenges",
+          "autogenerate": {
+            "directory": "cwee-prep-track/challenges"
+          }
+        }
+      ]
     }
   ]
 }

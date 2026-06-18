@@ -4,13 +4,13 @@ import { getCollection } from "astro:content";
 const allDocs = await getCollection("docs");
 const entries = allDocs.filter(
   (e) =>
-    e.id.startsWith("pentesterlab/") &&
-    !e.id.startsWith("pentesterlab/introduction/")
+    e.id.startsWith("cwee-prep-track/") &&
+    !e.id.startsWith("cwee-prep-track/introduction/")
 );
 
 const groups = new Map<string, typeof entries>();
 for (const entry of entries) {
-  const parts = entry.id.replace("pentesterlab/", "").split("/");
+  const parts = entry.id.replace("cwee-prep-track/", "").split("/");
   const category = parts.length > 1 ? parts[0] : "general";
   if (!groups.has(category)) groups.set(category, []);
   groups.get(category)!.push(entry);
@@ -102,16 +102,16 @@ const totalCount = entries.length;
 
 <style>
   .index {
-    --index-accent: #7ec8f2;
+    --index-accent: #b8d94a;
     --index-accent-gradient: linear-gradient(
       135deg,
-      #4da8d4 0%,
-      #7ec8f2 45%,
-      #b8e4ff 100%
+      #8fb832 0%,
+      #b8d94a 45%,
+      #e4f07a 100%
     );
-    --index-accent-glow: color-mix(in srgb, #7ec8f2 55%, transparent);
-    --index-accent-soft: color-mix(in srgb, #7ec8f2 22%, transparent);
-    --index-accent-muted: color-mix(in srgb, #7ec8f2 25%, transparent);
+    --index-accent-glow: color-mix(in srgb, #b8d94a 55%, transparent);
+    --index-accent-soft: color-mix(in srgb, #b8d94a 22%, transparent);
+    --index-accent-muted: color-mix(in srgb, #b8d94a 25%, transparent);
 
     margin-top: 0.5rem;
   }

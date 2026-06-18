@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /* GHOST WIRE — Neuromancer × GitS depth field, soft focus on dossier */
 
-const VOID = 0x030206;
+const VOID = 0x0a0814;
 
 const PALETTE = [
   new THREE.Color(0xb8a8e0),

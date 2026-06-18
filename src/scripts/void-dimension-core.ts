@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /* v0iid LEDGER — phosphor × cyan × violet experimental field */
 
-const VOID = 0x020406;
+const VOID = 0x081418;
 
 const PALETTE = [
   new THREE.Color(0x60ffa0),

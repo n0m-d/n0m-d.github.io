@@ -23,9 +23,9 @@
     <link rel="prefetch" href="/tools/" />
     <style>
       :root {
-        --void: #020406;
-        --void-deep: #000204;
-        --surface: rgba(4, 8, 12, 0.78);
+        --void: #081418;
+        --void-deep: #040c10;
+        --surface: rgba(10, 18, 24, 0.72);
         --phosphor: #60ffa0;
         --phosphor-dim: #30c068;
         --phosphor-rgb: 96, 255, 160;
@@ -64,7 +64,7 @@
         --scroll: 0;
         --hue: 140;
         --vel: 0;
-        --bloom: 0.62;
+        --bloom: 0.74;
         --tilt: 0deg;
         --focus: 0;
         --bg-blur: 0;
@@ -160,7 +160,7 @@
 
       .backdrop {
         position: fixed; inset: 0; z-index: 0; pointer-events: none;
-        filter: blur(calc(var(--bg-blur) * 1px)) brightness(calc(1.24 - var(--focus) * 0.05));
+        filter: blur(calc(var(--bg-blur) * 1px)) brightness(calc(1.32 - var(--focus) * 0.05));
         transform: scale(calc(1.006 + var(--focus) * 0.014)) translateZ(0);
         transform-origin: center center;
         transition: filter 0.75s cubic-bezier(0.4, 0, 0.2, 1),
@@ -313,9 +313,9 @@
       .vignette {
         position: fixed; inset: 0; z-index: 2; pointer-events: none;
         background:
-          radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.92) 100%),
-          radial-gradient(ellipse at 15% 85%, hsla(140, 70%, 48%, 0.1) 0%, transparent 45%),
-          radial-gradient(ellipse at 85% 15%, hsla(260, 60%, 55%, 0.09) 0%, transparent 40%);
+          radial-gradient(ellipse at center, transparent 62%, rgba(0, 0, 0, 0.72) 100%),
+          radial-gradient(ellipse at 15% 85%, hsla(140, 70%, 48%, 0.14) 0%, transparent 45%),
+          radial-gradient(ellipse at 85% 15%, hsla(260, 60%, 55%, 0.12) 0%, transparent 40%);
       }
 
       #scroll-progress {
@@ -356,7 +356,7 @@
 
       .boot-screen {
         position: fixed; inset: 0; z-index: 9999;
-        background: #000;
+        background: var(--void);
         display: flex; align-items: center; justify-content: center;
         overflow: hidden;
         font-family: var(--font-mono);
@@ -382,11 +382,11 @@
       .boot-burst {
         position: absolute; inset: 0; z-index: 12; pointer-events: none;
         opacity: 0;
-        background: rgba(210, 220, 210, 0.14);
+        background: rgba(220, 235, 220, 0.2);
       }
       .boot-track {
         position: absolute; left: 0; right: 0; top: 20%; height: 2px; z-index: 4;
-        background: rgba(220, 230, 220, 0.1);
+        background: rgba(230, 240, 230, 0.16);
         opacity: 0;
         will-change: transform, opacity;
         animation: lainTrack 2.6s linear infinite;
@@ -406,7 +406,7 @@
       .boot-ticker span {
         display: inline-block; white-space: nowrap;
         font-size: 0.48rem; letter-spacing: 0.22em;
-        color: rgba(130, 140, 130, 0.28);
+        color: rgba(155, 170, 155, 0.44);
         text-transform: lowercase;
         will-change: transform;
         animation: lainTicker 24s linear infinite;
@@ -420,9 +420,9 @@
         pointer-events: none;
         display: flex; justify-content: space-between; align-items: flex-start;
         font-size: 0.46rem; letter-spacing: 0.16em;
-        text-transform: uppercase; color: rgba(120, 130, 120, 0.32);
+        text-transform: uppercase; color: rgba(145, 160, 145, 0.48);
       }
-      .boot-hud em { font-style: normal; color: rgba(185, 195, 185, 0.48); }
+      .boot-hud em { font-style: normal; color: rgba(200, 215, 200, 0.64); }
       .boot-hud__right { text-align: right; line-height: 1.7; }
       .boot-whisper {
         position: absolute; top: 7.5%; left: 50%; z-index: 2;
@@ -433,19 +433,19 @@
         transition: opacity 1.2s ease, color 1.2s ease;
         pointer-events: none;
       }
-      .boot-whisper--in { color: rgba(170, 180, 170, 0.38); }
+      .boot-whisper--in { color: rgba(185, 200, 185, 0.54); }
 
       .boot-crt {
         position: absolute; inset: 0; pointer-events: none; z-index: 3;
         background: repeating-linear-gradient(
           0deg,
           transparent 0px, transparent 2px,
-          rgba(0, 0, 0, 0.32) 2px, rgba(0, 0, 0, 0.32) 4px
+          rgba(0, 0, 0, 0.18) 2px, rgba(0, 0, 0, 0.18) 4px
         );
       }
       .boot-vignette {
         position: absolute; inset: 0; pointer-events: none; z-index: 2;
-        background: radial-gradient(ellipse at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.75) 100%);
+        background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.52) 100%);
       }
 
       .boot-ghost {
@@ -456,7 +456,7 @@
         position: absolute;
         font-size: clamp(3rem, 12vw, 7rem);
         font-weight: 700; letter-spacing: 0.2em;
-        color: rgba(180, 190, 180, 0.025);
+        color: rgba(195, 210, 195, 0.045);
         white-space: nowrap;
         user-select: none;
       }
@@ -465,7 +465,7 @@
       .boot-ghost span:nth-child(3) {
         top: 50%; left: 50%; transform: translate(-50%, -50%);
         font-size: clamp(5rem, 18vw, 11rem); letter-spacing: 0.35em;
-        color: rgba(180, 190, 180, 0.018);
+        color: rgba(195, 210, 195, 0.035);
       }
 
       .boot-terminal-wrap {
@@ -477,12 +477,13 @@
         position: relative; z-index: 1;
         width: 100%;
         min-height: 22.5rem;
-        background: rgba(0, 0, 0, 0.72);
-        border: 1px solid rgba(180, 190, 180, 0.14);
+        background: rgba(10, 18, 22, 0.58);
+        border: 1px solid rgba(190, 205, 190, 0.22);
         box-shadow:
-          0 0 0 1px rgba(0, 0, 0, 0.9),
-          inset 0 0 40px rgba(0, 0, 0, 0.6),
-          0 0 60px rgba(0, 0, 0, 0.8);
+          0 0 0 1px rgba(0, 0, 0, 0.55),
+          inset 0 0 40px rgba(0, 0, 0, 0.35),
+          0 0 60px rgba(0, 0, 0, 0.45),
+          0 0 80px rgba(96, 255, 160, 0.04);
         opacity: 0;
         animation: lainTermIn 0.35s ease 0.12s forwards;
       }
@@ -503,17 +504,17 @@
       .boot-header {
         display: flex; justify-content: space-between; align-items: baseline;
         padding: 0.55rem 1rem;
-        border-bottom: 1px solid rgba(180, 190, 180, 0.1);
+        border-bottom: 1px solid rgba(190, 205, 190, 0.16);
         font-size: 0.58rem; letter-spacing: 0.14em;
-        color: rgba(180, 190, 180, 0.45);
+        color: rgba(195, 210, 195, 0.58);
         text-transform: uppercase;
       }
-      .boot-header__sys { color: rgba(200, 210, 200, 0.7); }
+      .boot-header__sys { color: rgba(215, 230, 215, 0.82); }
 
       .boot-terminal__body {
         padding: 1.1rem 1rem 1rem;
         font-size: 0.7rem; line-height: 1.65;
-        color: rgba(190, 198, 190, 0.82);
+        color: rgba(205, 215, 205, 0.9);
         min-height: 18.5rem;
         display: flex;
         flex-direction: column;
@@ -524,7 +525,7 @@
         display: block;
         min-height: 1.1em;
         opacity: 0; font-size: 0.62rem;
-        color: rgba(140, 150, 140, 0.42);
+        color: rgba(160, 175, 160, 0.56);
         letter-spacing: 0.06em;
         transition: opacity 0.2s ease;
       }
@@ -532,10 +533,10 @@
 
       .boot-prompt {
         display: flex; align-items: baseline; gap: 0.4rem;
-        margin-bottom: 0.85rem; color: rgba(160, 170, 160, 0.55);
+        margin-bottom: 0.85rem; color: rgba(175, 190, 175, 0.68);
         min-height: 1.1em;
       }
-      .boot-prompt__chev { color: rgba(200, 210, 200, 0.5); flex-shrink: 0; }
+      .boot-prompt__chev { color: rgba(215, 230, 215, 0.65); flex-shrink: 0; }
       .boot-prompt__cmd {
         color: rgba(210, 220, 210, 0.95);
         display: inline-block;
@@ -568,7 +569,7 @@
         text-shadow: 1px 0 rgba(0, 200, 200, 0.4), -1px 0 rgba(200, 100, 200, 0.3);
       }
       .boot-log--glitch.boot-log--ok {
-        color: rgba(190, 198, 190, 0.82);
+        color: rgba(205, 215, 205, 0.9);
         text-shadow: none; animation: none;
       }
       @keyframes lainTextGlitch {
@@ -577,16 +578,16 @@
         66% { transform: translate(2px, -1px); }
         100% { transform: translate(0); }
       }
-      .boot-log__dim { color: rgba(140, 150, 140, 0.45); }
+      .boot-log__dim { color: rgba(160, 175, 160, 0.58); }
       .boot-log__ok { color: rgba(210, 220, 210, 0.95); }
       .boot-log__jp {
         font-size: 0.62rem; letter-spacing: 0.2em;
-        color: rgba(160, 170, 160, 0.4); margin-top: 0.15rem;
+        color: rgba(175, 190, 175, 0.54); margin-top: 0.15rem;
       }
 
       .boot-ascii {
         margin: 0; font-size: 0.66rem; line-height: 1.5;
-        color: rgba(150, 160, 150, 0.45); white-space: pre;
+        color: rgba(165, 180, 165, 0.58); white-space: pre;
         min-height: 6em;
       }
       .boot-ascii__line {
@@ -598,13 +599,13 @@
       .boot-ascii__line--in { opacity: 1; transform: translateY(0); }
       .boot-ascii__line--accent {
         color: rgba(210, 220, 210, 0.9);
-        text-shadow: 0 0 8px rgba(200, 210, 200, 0.15);
+        text-shadow: 0 0 10px rgba(210, 225, 210, 0.22);
       }
       .boot-ascii__line--accent.boot-ascii__line--chroma {
         text-shadow:
           -2px 0 rgba(255, 90, 90, 0.45),
           2px 0 rgba(90, 160, 255, 0.45),
-          0 0 8px rgba(200, 210, 200, 0.15);
+          0 0 10px rgba(210, 225, 210, 0.22);
         animation: lainChroma 0.12s steps(2) 2;
       }
       @keyframes lainChroma {
@@ -614,7 +615,7 @@
       .boot-quote {
         margin-top: 0.65rem; font-size: 0.58rem;
         letter-spacing: 0.08em; font-style: italic;
-        color: rgba(150, 160, 150, 0.38);
+        color: rgba(165, 180, 165, 0.52);
         opacity: 0; transition: opacity 0.8s ease;
         min-height: 1.2em;
       }
@@ -623,12 +624,12 @@
       .boot-footer {
         display: flex; justify-content: space-between; align-items: center;
         padding: 0.45rem 1rem;
-        border-top: 1px solid rgba(180, 190, 180, 0.08);
+        border-top: 1px solid rgba(190, 205, 190, 0.14);
         font-size: 0.52rem; letter-spacing: 0.12em;
-        text-transform: lowercase; color: rgba(140, 150, 140, 0.38);
+        text-transform: lowercase; color: rgba(160, 175, 160, 0.52);
       }
       .boot-footer__status {
-        color: rgba(160, 170, 160, 0.5);
+        color: rgba(180, 195, 180, 0.64);
         transition: color 0.25s ease;
       }
       .boot-footer__status--linked {
@@ -646,7 +647,7 @@
         position: fixed; top: 0; left: 0; right: 0; z-index: 150;
         display: flex; align-items: center; justify-content: space-between;
         padding: 1.1rem 2rem;
-        background: linear-gradient(180deg, rgba(10, 16, 14, 0.82) 0%, transparent 100%);
+        background: linear-gradient(180deg, rgba(14, 22, 20, 0.72) 0%, transparent 100%);
         pointer-events: auto;
       }
 
@@ -1250,7 +1251,7 @@
       }
       .card:hover {
         border-color: rgba(var(--cyan-rgb), 0.3);
-        background: rgba(8, 18, 22, 0.72);
+        background: rgba(14, 26, 32, 0.68);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px hsla(var(--hue), 40%, 45%, 0.08);
         transform: translateY(calc(var(--card-lift, 0px) - 2px)) rotateX(1deg);
       }
@@ -1418,8 +1419,8 @@
         .boot-ascii__line--chroma { animation: none; }
         .boot-terminal { opacity: 1; transform: none; }
         .boot-log, .boot-ascii__line, .boot-pre__line, .boot-quote, .boot-whisper { transition: none; }
-        .boot-whisper--in { color: rgba(170, 180, 170, 0.38); }
-        .boot-quote--in { opacity: 1; color: rgba(150, 160, 150, 0.38); }
+        .boot-whisper--in { color: rgba(185, 200, 185, 0.54); }
+        .boot-quote--in { opacity: 1; color: rgba(165, 180, 165, 0.52); }
         body::before, body::after { display: none; }
         .beat-inner, .card { transition: none !important; }
         .backdrop { filter: none; transform: none; }
