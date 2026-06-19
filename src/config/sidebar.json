@@ -27,6 +27,21 @@
       ]
     },
     {
+      "label": "Hack The Box",
+      "items": [
+        {
+          "label": "[seti:json] Overview",
+          "slug": "hack-the-box/introduction/overview"
+        },
+        {
+          "label": "[seti:jinja] Challenges",
+          "autogenerate": {
+            "directory": "hack-the-box/challenges"
+          }
+        }
+      ]
+    },
+    {
       "label": "CWEE Prep Track",
       "items": [
         {
