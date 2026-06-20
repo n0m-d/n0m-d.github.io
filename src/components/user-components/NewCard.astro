@@ -1,14 +1,17 @@
 ---
 import { Icon } from "@astrojs/starlight/components";
 
-const { icon, title, iconColor, size = "large", href } = Astro.props;
+const { icon, title, iconColor, size = "large", href, glossy = false } = Astro.props;
 const Tag = href ? "a" : "article";
+const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
 ---
 
 <Tag
   href={href}
-  class={`card bg-lightmode-dark dark:bg-dark group ${size === "sm" ? "p-6" : "py-12 px-10"}`}
+  style={cardStyle}
+  class={`card bg-lightmode-dark dark:bg-dark group ${glossy ? "card--glossy" : ""} ${size === "sm" ? "p-6" : "py-12 px-10"}`}
 >
+  {glossy && <span class="card-gloss" aria-hidden="true" />}
   {
     icon && (
       <Icon
@@ -61,7 +64,7 @@ const Tag = href ? "a" : "article";
       border-radius: 1rem;
       position: relative;
       transition: all 0.5s ease;
-      border: 1px solid var(--sl-color-gray-6);
+      border: 1px solid color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 42%, var(--sl-color-gray-6));
       text-decoration: none;
       color: inherit;
     }
@@ -71,7 +74,12 @@ const Tag = href ? "a" : "article";
       position: absolute;
       inset: 0;
       padding: 1px;
-      background: var(--color-primary-gradient);
+      background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--card-accent, var(--sl-color-accent)) 70%, transparent) 0%,
+        var(--card-accent, var(--sl-color-accent)) 50%,
+        color-mix(in srgb, var(--card-accent, var(--sl-color-accent)) 75%, white) 100%
+      );
       border-radius: inherit;
       mask:
         linear-gradient(#fff 0 0) content-box,
@@ -84,6 +92,94 @@ const Tag = href ? "a" : "article";
 
     .card:hover::before {
       opacity: 1;
+    }
+
+    .card:hover {
+      border-color: color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 65%, transparent);
+    }
+
+    .card--glossy {
+      overflow: hidden;
+      border-color: color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 55%, transparent);
+      background: linear-gradient(
+        155deg,
+        color-mix(in oklab, var(--sl-color-gray-6) 38%, var(--sl-color-black)) 0%,
+        color-mix(in oklab, var(--sl-color-black) 94%, var(--sl-color-gray-6)) 55%,
+        color-mix(in oklab, var(--sl-color-gray-6) 22%, var(--sl-color-black)) 100%
+      ) !important;
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--card-accent, var(--sl-color-white)) 18%, transparent),
+        0 10px 28px color-mix(in srgb, var(--card-accent, var(--sl-color-black)) 14%, var(--sl-color-black));
+    }
+
+    .card--glossy:hover {
+      border-color: color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 80%, transparent);
+      box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--card-accent, var(--sl-color-white)) 28%, transparent),
+        0 12px 32px color-mix(in srgb, var(--card-accent, var(--sl-color-black)) 22%, var(--sl-color-black));
+    }
+
+    .card-gloss {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 0;
+      background:
+        linear-gradient(
+          145deg,
+          color-mix(in srgb, var(--sl-color-white) 16%, transparent) 0%,
+          color-mix(in srgb, var(--sl-color-white) 5%, transparent) 24%,
+          transparent 48%
+        ),
+        linear-gradient(
+          325deg,
+          transparent 58%,
+          color-mix(in srgb, var(--sl-color-white) 7%, transparent) 100%
+        );
+      opacity: 0.9;
+      transition: opacity 0.35s ease;
+    }
+
+    .card-gloss::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -120%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        color-mix(in srgb, var(--sl-color-white) 22%, transparent),
+        transparent
+      );
+      transform: skewX(-20deg);
+    }
+
+    .card--glossy:hover .card-gloss {
+      opacity: 1;
+    }
+
+    .card--glossy:hover .card-gloss::after {
+      animation: card-gloss-sweep 0.85s ease;
+    }
+
+    .card--glossy .icon,
+    .card--glossy .title,
+    .card--glossy .body,
+    .card--glossy > div {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes card-gloss-sweep {
+      0% {
+        left: -120%;
+      }
+      100% {
+        left: 140%;
+      }
     }
 
     .title {

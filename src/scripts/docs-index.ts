@@ -1,27 +1,34 @@
-/** Client-side search, filter, and pagination for HTBIndex */
+/** Client-side search, filter, and pagination for docs index components */
 
-export interface HTBIndexOptions {
+export interface DocsIndexOptions {
   defaultPerPage?: number;
 }
 
-let teardown: (() => void) | undefined;
+const teardowns = new Map<string, () => void>();
 
-export function initHTBIndex(options: HTBIndexOptions = {}): (() => void) | void {
-  const root = document.getElementById('htb-index-root');
-  const list = document.getElementById('htb-list');
-  if (!root || !list) return;
+export function initDocsIndex(
+  rootId: string,
+  options: DocsIndexOptions = {}
+): (() => void) | void {
+  const root = document.getElementById(rootId);
+  if (!root) return;
 
-  const searchInput = document.getElementById('htb-search') as HTMLInputElement | null;
-  const empty = document.getElementById('htb-empty');
-  const pagination = document.getElementById('htb-pagination');
-  const counter = document.getElementById('htb-counter');
-  const perPageSelect = document.getElementById('htb-per-page') as HTMLSelectElement | null;
-  const pageRange = document.getElementById('htb-page-range');
-  const pageIndicator = document.getElementById('htb-page-indicator');
-  const prevPage = document.getElementById('htb-prev-page') as HTMLButtonElement | null;
-  const nextPage = document.getElementById('htb-next-page') as HTMLButtonElement | null;
+  const list = root.querySelector<HTMLElement>('[data-index-list]');
+  if (!list) return;
 
-  const items = [...list.querySelectorAll<HTMLElement>('.htb-item')];
+  const searchInput = root.querySelector<HTMLInputElement>('[data-index-search]');
+  const empty = root.querySelector<HTMLElement>('[data-index-empty]');
+  const pagination = root.querySelector<HTMLElement>('[data-index-pagination]');
+  const counter = root.querySelector<HTMLElement>('[data-index-counter]');
+  const perPageSelect = root.querySelector<HTMLSelectElement>('[data-index-per-page]');
+  const pageRange = root.querySelector<HTMLElement>('[data-index-page-range]');
+  const pageIndicator = root.querySelector<HTMLElement>('[data-index-page-indicator]');
+  const prevPage = root.querySelector<HTMLButtonElement>('[data-index-prev-page]');
+  const nextPage = root.querySelector<HTMLButtonElement>('[data-index-next-page]');
+
+  const filters = root.querySelector<HTMLElement>('[data-index-filters]');
+
+  const items = [...list.querySelectorAll<HTMLElement>('.index-item')];
   if (items.length === 0) return;
 
   let activeCategory = 'all';
@@ -82,11 +89,7 @@ export function initHTBIndex(options: HTBIndexOptions = {}): (() => void) | void
     if (nextPage) nextPage.disabled = currentPage >= totalPages;
   }
 
-  searchInput?.addEventListener(
-    'input',
-    () => applyFilters(true),
-    { signal }
-  );
+  searchInput?.addEventListener('input', () => applyFilters(true), { signal });
 
   perPageSelect?.addEventListener(
     'change',
@@ -125,13 +128,11 @@ export function initHTBIndex(options: HTBIndexOptions = {}): (() => void) | void
   root.addEventListener(
     'click',
     (e) => {
-      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>(
-        '#htb-category-filters [data-filter]'
-      );
-      if (!btn) return;
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-filter]');
+      if (!btn || !filters?.contains(btn)) return;
 
       activeCategory = btn.dataset.filter ?? 'all';
-      root.querySelectorAll('#htb-category-filters [data-filter]').forEach((b) => {
+      filters.querySelectorAll('[data-filter]').forEach((b) => {
         b.classList.toggle('is-active', b === btn);
       });
       applyFilters(true);
@@ -161,7 +162,8 @@ export function initHTBIndex(options: HTBIndexOptions = {}): (() => void) | void
   };
 }
 
-export function bootHTBIndex(options: HTBIndexOptions = {}): void {
-  teardown?.();
-  teardown = initHTBIndex(options) ?? undefined;
+export function bootDocsIndex(rootId: string, options: DocsIndexOptions = {}): void {
+  teardowns.get(rootId)?.();
+  const teardown = initDocsIndex(rootId, options);
+  if (teardown) teardowns.set(rootId, teardown);
 }
