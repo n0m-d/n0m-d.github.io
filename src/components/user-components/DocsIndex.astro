@@ -445,6 +445,11 @@ const searchId = `${rootId}-search`;
     gap: 0.45rem;
   }
 
+  .index-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 4.75rem;
+  }
+
   .index-item.is-filtered-out,
   .index-item[hidden] {
     display: none !important;
@@ -462,11 +467,10 @@ const searchId = `${rootId}-search`;
     color: inherit;
     border: 1px solid var(--index-border);
     background: var(--index-dark);
-    transition:
-      border-color 0.2s ease,
-      background 0.2s ease,
-      transform 0.2s ease,
-      box-shadow 0.2s ease;
+    contain: layout paint;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     overflow: hidden;
   }
 
@@ -483,8 +487,9 @@ const searchId = `${rootId}-search`;
     mask-composite: exclude;
     -webkit-mask-composite: xor;
     opacity: 0;
-    transition: opacity 0.25s ease;
+    transition: opacity 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     pointer-events: none;
+    will-change: opacity;
   }
 
   .card::after {
@@ -496,13 +501,14 @@ const searchId = `${rootId}-search`;
     width: 3px;
     background: var(--index-accent-gradient);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity;
   }
 
   .card:hover {
     background: color-mix(in srgb, var(--index-dark) 65%, var(--index-black));
     border-color: color-mix(in srgb, var(--index-accent) 30%, var(--index-border));
-    transform: translateX(2px);
+    transform: translate3d(2px, 0, 0);
     box-shadow: 0 8px 24px color-mix(in srgb, var(--index-black) 55%, transparent);
   }
 
@@ -520,7 +526,7 @@ const searchId = `${rootId}-search`;
     font-weight: 500;
     letter-spacing: 0.08em;
     color: var(--index-subtle);
-    transition: color 0.2s ease;
+    transition: color 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   .card:hover .card__index {
@@ -580,16 +586,18 @@ const searchId = `${rootId}-search`;
     border-radius: 999px;
     color: var(--index-subtle);
     background: var(--index-black);
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
     transition:
-      color 0.2s ease,
-      background 0.2s ease,
-      transform 0.2s ease;
+      color 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      background 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+      transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
   .card:hover .card__arrow {
     color: var(--index-white);
     background: var(--index-accent-soft);
-    transform: translateX(2px);
+    transform: translate3d(2px, 0, 0);
   }
 
   .pagination {
@@ -700,7 +708,9 @@ const searchId = `${rootId}-search`;
       var(--index-accent-muted) 0%,
       transparent 70%
     );
-    animation: pulse 2.4s ease-in-out infinite;
+    animation: index-pulse 2.4s ease-in-out infinite;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
   }
 
   .empty__title {
@@ -716,14 +726,14 @@ const searchId = `${rootId}-search`;
     color: var(--index-muted);
   }
 
-  @keyframes pulse {
+  @keyframes index-pulse {
     0%,
     100% {
-      transform: scale(1);
+      transform: translate3d(0, 0, 0) scale(1);
       opacity: 0.65;
     }
     50% {
-      transform: scale(1.08);
+      transform: translate3d(0, 0, 0) scale(1.08);
       opacity: 1;
     }
   }

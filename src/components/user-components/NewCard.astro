@@ -63,7 +63,10 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
       /* gap: clamp(0.5rem, calc(0.125rem + 1vw), 1rem); */
       border-radius: 1rem;
       position: relative;
-      transition: all 0.5s ease;
+      contain: layout paint;
+      transform: translate3d(0, 0, 0);
+      backface-visibility: hidden;
+      transition: border-color 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       border: 1px solid color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 42%, var(--sl-color-gray-6));
       text-decoration: none;
       color: inherit;
@@ -87,7 +90,8 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
       mask-composite: exclude;
       -webkit-mask-composite: xor;
       opacity: 0;
-      transition: opacity 0.5s ease;
+      transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      will-change: opacity;
     }
 
     .card:hover::before {
@@ -100,6 +104,7 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
 
     .card--glossy {
       overflow: hidden;
+      isolation: isolate;
       border-color: color-mix(in srgb, var(--card-accent, var(--sl-color-gray-6)) 55%, transparent);
       background: linear-gradient(
         155deg,
@@ -125,6 +130,7 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
       border-radius: inherit;
       pointer-events: none;
       z-index: 0;
+      contain: strict;
       background:
         linear-gradient(
           145deg,
@@ -138,14 +144,15 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
           color-mix(in srgb, var(--sl-color-white) 7%, transparent) 100%
         );
       opacity: 0.9;
-      transition: opacity 0.35s ease;
+      transition: opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      will-change: opacity;
     }
 
     .card-gloss::after {
       content: "";
       position: absolute;
       top: 0;
-      left: -120%;
+      left: 0;
       width: 50%;
       height: 100%;
       background: linear-gradient(
@@ -154,7 +161,8 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
         color-mix(in srgb, var(--sl-color-white) 22%, transparent),
         transparent
       );
-      transform: skewX(-20deg);
+      transform: translate3d(-240%, 0, 0) skewX(-20deg);
+      backface-visibility: hidden;
     }
 
     .card--glossy:hover .card-gloss {
@@ -162,7 +170,8 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
     }
 
     .card--glossy:hover .card-gloss::after {
-      animation: card-gloss-sweep 0.85s ease;
+      animation: card-gloss-sweep 0.85s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      will-change: transform;
     }
 
     .card--glossy .icon,
@@ -174,11 +183,11 @@ const cardStyle = iconColor ? `--card-accent: ${iconColor};` : undefined;
     }
 
     @keyframes card-gloss-sweep {
-      0% {
-        left: -120%;
+      from {
+        transform: translate3d(-240%, 0, 0) skewX(-20deg);
       }
-      100% {
-        left: 140%;
+      to {
+        transform: translate3d(280%, 0, 0) skewX(-20deg);
       }
     }
 
