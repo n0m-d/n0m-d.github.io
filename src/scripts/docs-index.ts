@@ -1,5 +1,7 @@
 /** Client-side search, filter, and pagination for docs index components */
 
+import { prefersSmoothScroll } from './low-power';
+
 export interface DocsIndexOptions {
   defaultPerPage?: number;
 }
@@ -66,27 +68,31 @@ export function initDocsIndex(
     const end = start + perPage;
     const visibleSet = new Set(filtered.slice(start, end));
 
-    items.forEach((item) => {
-      const show = visibleSet.has(item);
-      item.hidden = !show;
-      item.classList.toggle('is-filtered-out', !show);
-    });
+    const update = (): void => {
+      items.forEach((item) => {
+        const show = visibleSet.has(item);
+        item.hidden = !show;
+        item.classList.toggle('is-filtered-out', !show);
+      });
 
-    const hasResults = total > 0;
-    list.hidden = !hasResults;
-    if (empty) empty.hidden = hasResults;
-    if (pagination) pagination.hidden = !hasResults;
-    if (counter) counter.textContent = String(total);
+      const hasResults = total > 0;
+      list.hidden = !hasResults;
+      if (empty) empty.hidden = hasResults;
+      if (pagination) pagination.hidden = !hasResults;
+      if (counter) counter.textContent = String(total);
 
-    if (hasResults && pageRange && pageIndicator) {
-      const from = start + 1;
-      const to = Math.min(end, total);
-      pageRange.textContent = `Showing ${from}–${to} of ${total}`;
-      pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
-    }
+      if (hasResults && pageRange && pageIndicator) {
+        const from = start + 1;
+        const to = Math.min(end, total);
+        pageRange.textContent = `Showing ${from}–${to} of ${total}`;
+        pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+      }
 
-    if (prevPage) prevPage.disabled = currentPage <= 1;
-    if (nextPage) nextPage.disabled = currentPage >= totalPages;
+      if (prevPage) prevPage.disabled = currentPage <= 1;
+      if (nextPage) nextPage.disabled = currentPage >= totalPages;
+    };
+
+    requestAnimationFrame(update);
   }
 
   searchInput?.addEventListener('input', () => applyFilters(true), { signal });
@@ -106,7 +112,14 @@ export function initDocsIndex(
       if (currentPage > 1) {
         currentPage -= 1;
         applyFilters();
-        list.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            list.scrollIntoView({
+              behavior: prefersSmoothScroll() ? 'smooth' : 'auto',
+              block: 'nearest',
+            });
+          });
+        });
       }
     },
     { signal }
@@ -119,7 +132,14 @@ export function initDocsIndex(
       if (currentPage < totalPages) {
         currentPage += 1;
         applyFilters();
-        list.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            list.scrollIntoView({
+              behavior: prefersSmoothScroll() ? 'smooth' : 'auto',
+              block: 'nearest',
+            });
+          });
+        });
       }
     },
     { signal }

@@ -26,6 +26,39 @@ if (theme.fonts.font_family.secondary) {
 
 {head.map(({ tag: Tag, attrs, content }) => <Tag {...attrs} set:html={content} />)}
 
+<!-- Detect software rendering / no GPU before first paint -->
+<script is:inline>
+  (function () {
+    function isLowPower() {
+      var n = navigator,
+        c = n.hardwareConcurrency || 1,
+        m = n.deviceMemory || 4;
+      if (c <= 1) return true;
+      if (c <= 2 && m <= 2) return true;
+      try {
+        var x = document.createElement("canvas"),
+          g = x.getContext("webgl") || x.getContext("experimental-webgl");
+        if (!g) return true;
+        var d = g.getExtension("WEBGL_debug_renderer_info");
+        if (d) {
+          var r = g.getParameter(d.UNMASKED_RENDERER_WEBGL);
+          if (
+            /swiftshader|llvmpipe|software|mesa|basic render|virgl|softpipe|angle/i.test(
+              r
+            )
+          )
+            return true;
+        }
+        if (g.getParameter(g.MAX_TEXTURE_SIZE) < 4096) return true;
+      } catch (e) {
+        return true;
+      }
+      return false;
+    }
+    if (isLowPower()) document.documentElement.classList.add("low-power");
+  })();
+</script>
+
 <!-- google font css -->
     <AstroFont
       config={[

@@ -1,0 +1,147 @@
+/* Compositor-friendly motion defaults — same visuals, cheaper paints */
+
+@layer utilities {
+  .motion-layer {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  .motion-pulse {
+    animation: motion-pulse 2.4s ease-in-out infinite;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+  }
+
+  @keyframes motion-pulse {
+    0%,
+    100% {
+      transform: translate3d(0, 0, 0) scale(1);
+      opacity: 0.65;
+    }
+    50% {
+      transform: translate3d(0, 0, 0) scale(1.08);
+      opacity: 1;
+    }
+  }
+}
+
+/*
+ * CPU / software-renderer path (html.low-power set in Head.astro).
+ * Keeps motion and feedback — uses opacity + border only (no transforms, masks, or shadows).
+ */
+html.low-power *,
+html.low-power *::before,
+html.low-power *::after {
+  will-change: auto !important;
+}
+
+html.low-power .card,
+html.low-power .docs-index .card {
+  contain: none;
+  transform: none;
+  backface-visibility: visible;
+  transition:
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+html.low-power .card::before,
+html.low-power .docs-index .card::before {
+  display: none;
+}
+
+html.low-power .docs-index .card::after {
+  display: none;
+}
+
+html.low-power .card:hover,
+html.low-power .docs-index .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+html.low-power .card--glossy,
+html.low-power .card--glossy:hover {
+  box-shadow: none;
+}
+
+html.low-power .card-gloss::after {
+  display: none;
+  animation: none !important;
+}
+
+html.low-power .card--glossy:hover .card-gloss {
+  animation: low-power-gloss 0.65s ease;
+}
+
+html.low-power .card-gloss {
+  contain: none;
+  transition: opacity 0.25s ease;
+}
+
+@keyframes low-power-gloss {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+html.low-power .docs-index .card:hover .card__arrow {
+  transform: none;
+}
+
+html.low-power .index-item {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
+}
+
+html.low-power .empty__pulse,
+html.low-power .motion-pulse {
+  animation: low-power-opacity-pulse 2.4s ease-in-out infinite;
+  transform: none;
+}
+
+@keyframes low-power-opacity-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+html.low-power .docs-index .empty__pulse {
+  animation: low-power-opacity-pulse 2.4s ease-in-out infinite;
+}
+
+/* Browsers too old for transforms — same CPU path */
+@supports not (transform: translate3d(0, 0, 0)) {
+  .card,
+  .docs-index .card {
+    transform: none;
+    contain: none;
+  }
+
+  .card::before,
+  .docs-index .card::before,
+  .docs-index .card::after,
+  .card-gloss::after {
+    display: none;
+  }
+
+  .card:hover,
+  .docs-index .card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .empty__pulse,
+  .motion-pulse {
+    animation: low-power-opacity-pulse 2.4s ease-in-out infinite;
+    transform: none;
+  }
+}
