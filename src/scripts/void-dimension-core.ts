@@ -33,7 +33,7 @@ export class VoidDimension {
   private scene = new THREE.Scene();
   private camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
   private renderer!: THREE.WebGLRenderer;
-  private clock = new THREE.Clock();
+  private timer = new THREE.Timer();
 
   private scroll = 0;
   private targetScroll = 0;
@@ -108,6 +108,7 @@ export class VoidDimension {
 
   constructor(canvas: HTMLCanvasElement) {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.timer.connect(document);
 
     this.initDom();
 
@@ -213,6 +214,7 @@ export class VoidDimension {
     this.destroyed = true;
     this.events.abort();
     this.clearBootTimers();
+    this.timer.dispose();
     if (this.sceneReady) this.renderer.dispose();
   }
 
@@ -1051,7 +1053,6 @@ export class VoidDimension {
     }, { signal });
     document.addEventListener('visibilitychange', () => {
       this.visible = !document.hidden;
-      if (this.visible) this.clock.getDelta();
     }, { signal });
   }
 
@@ -1234,16 +1235,16 @@ export class VoidDimension {
 
     const hudStates = ['idle', 'read', 'sync', 'ice', 'ghost', 'trace', 'ledger'];
     const stateIdx = Math.floor(this.time * 0.4) % hudStates.length;
-    if (this.uiFrame % 8 === 0 || stateIdx !== this.lastHudState) {
+    const traceHex = (Math.floor(this.time * 512 + s * 65535) % 65536).toString(16).padStart(4, '0');
+    if (this.uiFrame % 4 === 0 || stateIdx !== this.lastHudState) {
       this.lastHudState = stateIdx;
       const state = hudStates[stateIdx];
       const seq3 = Math.floor(s * 4095).toString(16).padStart(3, '0');
-      const seq4 = Math.floor(s * 65535).toString(16).padStart(4, '0');
 
       if (this.coordDisplay) {
         this.coordDisplay.textContent = `blk:0x${seq3} · ${state}`;
       }
-      if (this.heroSignalHex) this.heroSignalHex.textContent = `0x${seq4}`;
+      if (this.heroSignalHex) this.heroSignalHex.textContent = `0x${traceHex}`;
       if (this.heroSignalState) this.heroSignalState.textContent = state === 'ledger' ? 'drift' : state;
 
       if (this.ledgerTicker) {
@@ -1258,12 +1259,13 @@ export class VoidDimension {
     }
   }
 
-  private animate() {
+  private animate(timestamp?: number) {
     if (this.destroyed || !this.sceneReady) return;
-    requestAnimationFrame(() => this.animate());
+    requestAnimationFrame((t) => this.animate(t));
     if (!this.visible) return;
-    const dt = Math.min(this.clock.getDelta(), 0.05);
-    const t = this.clock.getElapsedTime();
+    this.timer.update(timestamp);
+    const dt = Math.min(this.timer.getDelta(), 0.05);
+    const t = this.timer.getElapsed();
     this.time = t;
     this.scroll += (this.targetScroll - this.scroll) * 0.04;
     this.smoothScrollVel += (this.scrollVel - this.smoothScrollVel) * 0.12;

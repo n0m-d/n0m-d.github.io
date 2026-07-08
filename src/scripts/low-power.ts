@@ -24,9 +24,11 @@ export function isLowPowerDevice(): boolean {
     const debug = gl.getExtension('WEBGL_debug_renderer_info');
     if (debug) {
       const renderer = gl.getParameter(debug.UNMASKED_RENDERER_WEBGL) as string;
-      if (/swiftshader|llvmpipe|software|mesa|basic render|virgl|softpipe|angle/i.test(renderer)) {
+      // ANGLE is Chrome's normal GPU backend — only flag SwiftShader builds.
+      if (/swiftshader|llvmpipe|software renderer|basic render|virgl|softpipe/i.test(renderer)) {
         return true;
       }
+      if (/angle.*swiftshader/i.test(renderer)) return true;
     }
 
     if (gl.getParameter(gl.MAX_TEXTURE_SIZE) < 4096) return true;
