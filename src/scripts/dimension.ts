@@ -1,4 +1,5 @@
 import type { VoidDimension } from './void-dimension-core';
+import { isLowPowerDevice } from './low-power';
 
 let voidInstance: VoidDimension | null = null;
 let tabPauseBound = false;
@@ -6,9 +7,16 @@ let tabPauseBound = false;
 function bindTabPause(): void {
   if (tabPauseBound) return;
   tabPauseBound = true;
+  document.documentElement.classList.toggle('hidden-tab', document.hidden);
   document.addEventListener('visibilitychange', () => {
     document.documentElement.classList.toggle('hidden-tab', document.hidden);
   });
+}
+
+function applyDeviceHints(): void {
+  if (isLowPowerDevice()) {
+    document.documentElement.classList.add('low-power');
+  }
 }
 
 function idle(maxMs = 600): Promise<void> {
@@ -39,6 +47,7 @@ declare global {
 }
 
 export function mountVoidPage(): void {
+  applyDeviceHints();
   bindTabPause();
   void bootVoidPage();
   if (window.__voidPageMounted) return;

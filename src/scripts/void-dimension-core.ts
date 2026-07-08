@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isLowPowerDevice } from './low-power';
 
 /* v0iid LEDGER — phosphor × cyan × violet experimental field */
 
@@ -88,9 +89,14 @@ export class VoidDimension {
   private smoothFocus = 0;
 
   private sectionEls: HTMLElement[] = [];
+  private cardEls: HTMLElement[] = [];
   private progressBar: HTMLElement | null = null;
   private coordDisplay: HTMLElement | null = null;
+  private heroSignalHex: HTMLElement | null = null;
+  private heroSignalState: HTMLElement | null = null;
   private ledgerTicker: HTMLElement | null = null;
+  private uiFrame = 0;
+  private lastHudState = -1;
   private reducedMotion = false;
   private bootDismissed = false;
   private bootTimers: ReturnType<typeof setTimeout>[] = [];
@@ -113,7 +119,10 @@ export class VoidDimension {
         powerPreference: 'high-performance',
       });
       this.renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, window.innerWidth < 768 ? 1 : 1.5)
+        Math.min(
+          window.devicePixelRatio,
+          isLowPowerDevice() ? 1 : window.innerWidth < 768 ? 1 : 1.5
+        )
       );
       this.renderer.setClearColor(VOID, 1);
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -143,8 +152,11 @@ export class VoidDimension {
 
   private initDom() {
     this.sectionEls = Array.from(document.querySelectorAll<HTMLElement>('[data-section]'));
+    this.cardEls = Array.from(document.querySelectorAll<HTMLElement>('.card'));
     this.progressBar = document.getElementById('scroll-progress');
     this.coordDisplay = document.getElementById('coord-readout');
+    this.heroSignalHex = document.getElementById('hero-signal-hex');
+    this.heroSignalState = document.getElementById('hero-signal-state');
     this.ledgerTicker = document.getElementById('ledger-ticker');
 
     this.syncScrollState();
@@ -1194,39 +1206,56 @@ export class VoidDimension {
     document.documentElement.style.setProperty('--pulse', String(0.5 + Math.sin(this.time * 1.2) * 0.5));
     document.documentElement.style.setProperty('--parallax', `${(this.smoothMouse.y * 8).toFixed(1)}px`);
 
-    this.sectionEls.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
-      const v = Math.max(0, 1 - dist * 1.6);
-      const ease = v * v * (3 - 2 * v);
-      el.style.setProperty('--section-reveal', String(ease));
-    });
+    this.uiFrame++;
+    const layoutPass = this.uiFrame % 2 === 0;
 
-    if (this.coordDisplay) {
-      const seq = Math.floor(s * 4095).toString(16).padStart(3, '0');
-      const states = ['idle', 'read', 'sync', 'ice', 'ghost', 'trace', 'ledger'];
-      this.coordDisplay.textContent = `blk:0x${seq} · ${states[Math.floor(this.time * 0.4) % states.length]}`;
+    if (layoutPass) {
+      this.sectionEls.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+        const v = Math.max(0, 1 - dist * 1.6);
+        const ease = v * v * (3 - 2 * v);
+        el.style.setProperty('--section-reveal', String(ease));
+      });
+
+      if (s > 0.12) {
+        const vh = window.innerHeight;
+        this.cardEls.forEach((card, i) => {
+          const rect = card.getBoundingClientRect();
+          if (rect.top > vh * 0.95) return;
+          const delay = i * 0.08;
+          const v = Math.max(0, Math.min(1, 1 - (rect.top - vh * 0.65) / (vh * 0.3)));
+          const ease = v * v * (3 - 2 * v);
+          card.style.setProperty('--card-reveal', String(ease));
+          card.style.setProperty('--card-lift', `${(1 - ease) * 16 + delay * 2}px`);
+        });
+      }
     }
 
-    if (this.ledgerTicker) {
-      const phrases = [
-        'ghost trace · ledger sync · ice probe',
-        'helix spin · construct run · v0iid read',
-        'neural map · data arc · wintermute ping',
-        'archive mount · phosphor ok · shell drift',
-      ];
-      this.ledgerTicker.textContent = phrases[Math.floor(this.time * 0.25) % phrases.length];
-    }
+    const hudStates = ['idle', 'read', 'sync', 'ice', 'ghost', 'trace', 'ledger'];
+    const stateIdx = Math.floor(this.time * 0.4) % hudStates.length;
+    if (this.uiFrame % 8 === 0 || stateIdx !== this.lastHudState) {
+      this.lastHudState = stateIdx;
+      const state = hudStates[stateIdx];
+      const seq3 = Math.floor(s * 4095).toString(16).padStart(3, '0');
+      const seq4 = Math.floor(s * 65535).toString(16).padStart(4, '0');
 
-    document.querySelectorAll<HTMLElement>('.card').forEach((card, i) => {
-      const rect = card.getBoundingClientRect();
-      if (rect.top > window.innerHeight * 0.95) return;
-      const delay = i * 0.08;
-      const v = Math.max(0, Math.min(1, 1 - (rect.top - window.innerHeight * 0.65) / (window.innerHeight * 0.3)));
-      const ease = v * v * (3 - 2 * v);
-      card.style.setProperty('--card-reveal', String(ease));
-      card.style.setProperty('--card-lift', `${(1 - ease) * 16 + delay * 2}px`);
-    });
+      if (this.coordDisplay) {
+        this.coordDisplay.textContent = `blk:0x${seq3} · ${state}`;
+      }
+      if (this.heroSignalHex) this.heroSignalHex.textContent = `0x${seq4}`;
+      if (this.heroSignalState) this.heroSignalState.textContent = state === 'ledger' ? 'drift' : state;
+
+      if (this.ledgerTicker) {
+        const phrases = [
+          'ghost trace · ledger sync · ice probe',
+          'helix spin · construct run · v0iid read',
+          'neural map · data arc · wintermute ping',
+          'archive mount · phosphor ok · shell drift',
+        ];
+        this.ledgerTicker.textContent = phrases[Math.floor(this.time * 0.25) % phrases.length];
+      }
+    }
   }
 
   private animate() {
