@@ -10,6 +10,7 @@ import locals from "./src/config/locals.json";
 import sidebar from "./src/config/sidebar.json";
 
 import { fileURLToPath } from "url";
+import remarkObsidianCallout from "./src/plugins/remark-obsidian-callout.mjs";
 
 const { site } = config;
 const { title, logo, logo_darkmode } = site;
@@ -34,6 +35,9 @@ export default defineConfig({
   },
   image: {
     service: { entrypoint: "astro/assets/services/sharp" },
+  },
+  markdown: {
+    remarkPlugins: [remarkObsidianCallout],
   },
   integrations: [
     starlight({

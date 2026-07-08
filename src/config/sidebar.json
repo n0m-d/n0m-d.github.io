@@ -23,6 +23,12 @@
           "autogenerate": {
             "directory": "pentesterlab/capture-the-flag"
           }
+        },
+        {
+          "label": "[seti:bower] Brown",
+          "autogenerate": {
+            "directory": "pentesterlab/brown"
+          }
         }
       ]
     },

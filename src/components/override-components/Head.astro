@@ -83,3 +83,22 @@ if (theme.fonts.font_family.secondary) {
       ]}
     />
 
+<script is:inline>
+  document.addEventListener(
+    "click",
+    (event) => {
+      const callout = event.target.closest?.(".callout.is-collapsible");
+      if (!callout) return;
+      callout.classList.toggle("is-collapsed");
+    },
+    true,
+  );
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const callout = event.target.closest?.(".callout.is-collapsible");
+    if (!callout || event.target !== callout) return;
+    event.preventDefault();
+    callout.classList.toggle("is-collapsed");
+  });
+</script>
+
