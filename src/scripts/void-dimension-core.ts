@@ -98,6 +98,7 @@ export class VoidDimension {
   private uiFrame = 0;
   private lastHudState = -1;
   private reducedMotion = false;
+  private lowPower = false;
   private bootDismissed = false;
   private bootTimers: ReturnType<typeof setTimeout>[] = [];
   private bootInterval: ReturnType<typeof setInterval> | null = null;
@@ -105,9 +106,11 @@ export class VoidDimension {
   private sceneReady = false;
   private visible = !document.hidden;
   private events = new AbortController();
+  private lastCss: Record<string, string> = {};
 
   constructor(canvas: HTMLCanvasElement) {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.lowPower = isLowPowerDevice();
     this.timer.connect(document);
 
     this.initDom();
@@ -115,14 +118,14 @@ export class VoidDimension {
     try {
       this.renderer = new THREE.WebGLRenderer({
         canvas,
-        antialias: true,
+        antialias: !this.lowPower,
         alpha: false,
-        powerPreference: 'high-performance',
+        powerPreference: this.lowPower ? 'low-power' : 'high-performance',
       });
       this.renderer.setPixelRatio(
         Math.min(
           window.devicePixelRatio,
-          isLowPowerDevice() ? 1 : window.innerWidth < 768 ? 1 : 1.5
+          this.lowPower ? 1 : window.innerWidth < 768 ? 1 : 1.5
         )
       );
       this.renderer.setClearColor(VOID, 1);
@@ -1191,45 +1194,91 @@ export class VoidDimension {
     return focus;
   }
 
+  private setCssVar(name: string, value: string) {
+    if (this.lastCss[name] === value) return;
+    this.lastCss[name] = value;
+    document.documentElement.style.setProperty(name, value);
+  }
+
   private updateUI(s: number) {
-    const targetFocus = this.contentFocus();
-    this.smoothFocus += (targetFocus - this.smoothFocus) * 0.07;
-
-    const hue = Math.floor(this.time * 15 + s * 80) % 360;
-    const blur = this.smoothFocus * 4;
-    const bloom = (1 - this.smoothFocus) * 0.35 + Math.sin(s * Math.PI) * 0.35;
-    document.documentElement.style.setProperty('--hue', String(hue));
-    document.documentElement.style.setProperty('--vel', String(Math.min(Math.abs(this.smoothScrollVel) * 0.03, 1)));
-    document.documentElement.style.setProperty('--bloom', String(bloom));
-    document.documentElement.style.setProperty('--tilt', `${(this.smoothMouse.x * 3).toFixed(2)}deg`);
-    document.documentElement.style.setProperty('--focus', String(this.smoothFocus));
-    document.documentElement.style.setProperty('--bg-blur', String(blur));
-    document.documentElement.style.setProperty('--pulse', String(0.5 + Math.sin(this.time * 1.2) * 0.5));
-    document.documentElement.style.setProperty('--parallax', `${(this.smoothMouse.y * 8).toFixed(1)}px`);
-
     this.uiFrame++;
-    const layoutPass = this.uiFrame % 2 === 0;
 
-    if (layoutPass) {
-      this.sectionEls.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
-        const v = Math.max(0, 1 - dist * 1.6);
-        const ease = v * v * (3 - 2 * v);
-        el.style.setProperty('--section-reveal', String(ease));
-      });
+    // Live filter/blur on `.backdrop` + many CSS vars = tablet scroll flicker.
+    // Keep a calm static field there; skip per-frame chromatic thrash.
+    if (this.lowPower) {
+      this.setCssVar('--hue', '140');
+      this.setCssVar('--vel', '0');
+      this.setCssVar('--bloom', '0.55');
+      this.setCssVar('--tilt', '0deg');
+      this.setCssVar('--focus', '0');
+      this.setCssVar('--bg-blur', '0');
+      this.setCssVar('--pulse', '0.5');
+      this.setCssVar('--parallax', '0px');
 
-      if (s > 0.12) {
-        const vh = window.innerHeight;
-        this.cardEls.forEach((card, i) => {
-          const rect = card.getBoundingClientRect();
-          if (rect.top > vh * 0.95) return;
-          const delay = i * 0.08;
-          const v = Math.max(0, Math.min(1, 1 - (rect.top - vh * 0.65) / (vh * 0.3)));
-          const ease = v * v * (3 - 2 * v);
-          card.style.setProperty('--card-reveal', String(ease));
-          card.style.setProperty('--card-lift', `${(1 - ease) * 16 + delay * 2}px`);
+      // Reveal content once — animating --section-reveal while touch-scrolling
+      // causes transform thrash / flicker on tablet GPUs.
+      if (this.uiFrame === 1 || this.uiFrame % 10 === 0) {
+        this.sectionEls.forEach((el) => {
+          if (el.style.getPropertyValue('--section-reveal') !== '1') {
+            el.style.setProperty('--section-reveal', '1');
+          }
         });
+        this.cardEls.forEach((card) => {
+          if (card.style.getPropertyValue('--card-reveal') !== '1') {
+            card.style.setProperty('--card-reveal', '1');
+            card.style.setProperty('--card-lift', '0px');
+          }
+        });
+      }
+    } else {
+      const targetFocus = this.contentFocus();
+      this.smoothFocus += (targetFocus - this.smoothFocus) * 0.07;
+
+      const hue = Math.floor(this.time * 15 + s * 80) % 360;
+      const blur = (this.smoothFocus * 4).toFixed(2);
+      const bloom = ((1 - this.smoothFocus) * 0.35 + Math.sin(s * Math.PI) * 0.35).toFixed(3);
+      const focus = this.smoothFocus.toFixed(3);
+      this.setCssVar('--hue', String(hue));
+      this.setCssVar('--vel', Math.min(Math.abs(this.smoothScrollVel) * 0.03, 1).toFixed(3));
+      this.setCssVar('--bloom', bloom);
+      this.setCssVar('--tilt', `${(this.smoothMouse.x * 3).toFixed(2)}deg`);
+      this.setCssVar('--focus', focus);
+      this.setCssVar('--bg-blur', blur);
+      this.setCssVar('--pulse', (0.5 + Math.sin(this.time * 1.2) * 0.5).toFixed(3));
+      this.setCssVar('--parallax', `${(this.smoothMouse.y * 8).toFixed(1)}px`);
+
+      const layoutPass = this.uiFrame % 2 === 0;
+
+      if (layoutPass) {
+        this.sectionEls.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+          const v = Math.max(0, 1 - dist * 1.6);
+          const ease = v * v * (3 - 2 * v);
+          const easeStr = ease.toFixed(3);
+          if (el.style.getPropertyValue('--section-reveal') !== easeStr) {
+            el.style.setProperty('--section-reveal', easeStr);
+          }
+        });
+
+        if (s > 0.12) {
+          const vh = window.innerHeight;
+          this.cardEls.forEach((card, i) => {
+            const rect = card.getBoundingClientRect();
+            if (rect.top > vh * 0.95) return;
+            const delay = i * 0.08;
+            const v = Math.max(0, Math.min(1, 1 - (rect.top - vh * 0.65) / (vh * 0.3)));
+            const ease = v * v * (3 - 2 * v);
+            const easeStr = ease.toFixed(3);
+            const lift = `${((1 - ease) * 16 + delay * 2).toFixed(1)}px`;
+            if (card.style.getPropertyValue('--card-reveal') !== easeStr) {
+              card.style.setProperty('--card-reveal', easeStr);
+            }
+            if (card.style.getPropertyValue('--card-lift') !== lift) {
+              card.style.setProperty('--card-lift', lift);
+            }
+          });
+        }
       }
     }
 
@@ -1270,12 +1319,19 @@ export class VoidDimension {
     this.scroll += (this.targetScroll - this.scroll) * 0.04;
     this.smoothScrollVel += (this.scrollVel - this.smoothScrollVel) * 0.12;
     this.scrollVel *= 0.88;
-    this.smoothMouse.lerp(this.mouse, 0.04);
+    if (!this.lowPower) this.smoothMouse.lerp(this.mouse, 0.04);
 
-    this.updateCamera(this.scroll, t);
-    this.updateScene(this.scroll, t, dt);
+    // On tablets / low-power: render UI + scene on alternate frames to cut
+    // compositor pressure while scrolling (main source of flicker).
+    const frame = this.uiFrame + 1;
+    const skipScene = this.lowPower && frame % 2 === 0;
+
     this.updateUI(this.scroll);
-    this.renderer.render(this.scene, this.camera);
+    if (!skipScene) {
+      this.updateCamera(this.scroll, t);
+      this.updateScene(this.scroll, t, dt);
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 }
 

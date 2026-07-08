@@ -83,7 +83,10 @@
         font-size: 110%;
       }
 
-      @supports (zoom: 1) {
+      /* Zoom scales the whole page, but Firefox composites it softly at
+         non-integer factors. Keep font-size scaling there; use zoom only
+         in Blink/WebKit where 1.1 stays crisp. */
+      @supports (zoom: 1) and (not (-moz-appearance: none)) {
         html {
           font-size: 100%;
           zoom: 1.1;
@@ -167,8 +170,8 @@
         filter: blur(calc(var(--bg-blur) * 1px)) brightness(calc(1.32 - var(--focus) * 0.05));
         transform: scale(calc(1.006 + var(--focus) * 0.014)) translateZ(0);
         transform-origin: center center;
-        transition: filter 0.75s cubic-bezier(0.4, 0, 0.2, 1),
-          transform 0.75s cubic-bezier(0.4, 0, 0.2, 1);
+        /* No transition: JS updates --bg-blur/--focus every frame; easing that
+           on tablets causes scroll flicker from repeated filter recomposite. */
       }
       .backdrop-veil {
         position: absolute; inset: 0; pointer-events: none;
@@ -2237,6 +2240,13 @@
       html.low-power .hero-signal__bars i,
       html.low-power .hero-signal__sweep,
       html.low-power .hero-signal__stream-inner,
+      html.low-power .signal-glitch::before,
+      html.low-power .signal-glitch::after,
+      html.low-power .sweep-beam,
+      html.low-power .scroll-hint,
+      html.low-power .headline-ghosts span,
+      html.low-power .headline-stack .accent,
+      html.low-power .headline-stack .accent::before,
       html.low-power nav {
         animation: none !important;
       }
@@ -2254,6 +2264,47 @@
       html.low-power .backdrop {
         filter: none !important;
         transform: none !important;
+      }
+
+      html.low-power .chroma-bleed,
+      html.low-power .hex-field,
+      html.low-power .net-mesh,
+      html.low-power .ice-fall,
+      html.low-power .signal-glitch,
+      html.low-power .sweep-beam {
+        display: none;
+      }
+
+      /* Touch-first tablets: kill expensive scroll composites before JS hydrates */
+      @media (pointer: coarse), (hover: none) {
+        .backdrop {
+          filter: none !important;
+          transform: none !important;
+        }
+        .nav-nexus__deck,
+        .hero-signal__unit,
+        #archive .beat-inner,
+        #enter .beat-inner,
+        footer,
+        .scroll-hint,
+        .card {
+          backdrop-filter: none;
+        }
+        .chroma-bleed,
+        .hex-field,
+        .net-mesh,
+        .ice-fall,
+        .signal-glitch,
+        .sweep-beam {
+          display: none;
+        }
+        .scroll-hint,
+        .headline-ghosts span {
+          animation: none !important;
+        }
+        .beat { --section-reveal: 1; }
+        .beat-inner { opacity: 1; transform: none; }
+        .card { --card-reveal: 1; --card-lift: 0px; opacity: 1; transform: none; }
       }
 
       @media (prefers-reduced-motion: reduce) {
