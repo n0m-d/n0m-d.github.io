@@ -102,6 +102,17 @@ export const tools: Tool[] = [
     visibility: 'public',
     keywords: ['pentesterlab', 'capture-the-flag', 'jwt'],
   },
+  {
+    name: 'DVAPI',
+    description:
+      'Damn Vulnerable API (DVAPI) is an intentionally vulnerable API application designed for learning, practicing, and testing API security concepts',
+    github: 'https://github.com/n0m-d/DVAPI',
+    language: 'Go',
+    topics: ['apisec', 'graphql', 'jwt', 'go','smtp'],
+    publishedAt: '2026-07-27',
+    visibility: 'public',
+    keywords: ['api-hacking', 'apisec', 'damn-vulnerable'],
+  },
 ];
 
 export function getTools(): Tool[] {
