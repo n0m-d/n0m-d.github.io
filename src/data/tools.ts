@@ -105,13 +105,24 @@ export const tools: Tool[] = [
   {
     name: 'DVAPI',
     description:
-      'Damn Vulnerable API (DVAPI) is an intentionally vulnerable API application designed for learning, practicing, and testing API security concepts',
+      'Damn Vulnerable API (DVAPI) is an intentionally vulnerable API application designed for learning, practicing, and testing API security concepts.',
     github: 'https://github.com/n0m-d/DVAPI',
     language: 'Go',
     topics: ['apisec', 'graphql', 'jwt', 'go','smtp'],
     publishedAt: '2026-07-27',
     visibility: 'public',
     keywords: ['api-hacking', 'apisec', 'damn-vulnerable'],
+  },
+  {
+    name: 'jwto',
+    description:
+      'A command-line tool for inspecting and tampering with JSON Web Tokens (JWTs). Built for authorized security testing, CTF challenges, and debugging JWT.',
+    github: 'https://github.com/n0m-d/jwto',
+    language: 'Go',
+    topics: ['jwt', 'apisec', 'go', 'cli'],
+    publishedAt: '2026-08-10',
+    visibility: 'public',
+    keywords: ['api-hacking', 'apisec', 'jwt'],
   },
 ];
 
