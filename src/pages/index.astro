@@ -1576,77 +1576,1394 @@
       #archive .beat-inner,
       #enter .beat-inner {
         position: relative;
-        padding: clamp(2.25rem, 5vw, 3.25rem);
-        border-radius: var(--radius-lg);
-        background: linear-gradient(168deg,
-          rgba(8, 18, 26, 0.58) 0%,
-          rgba(5, 12, 18, 0.38) 100%);
-        border: 1px solid rgba(var(--phosphor-rgb), 0.14);
-        backdrop-filter: blur(18px) saturate(1.25);
-        box-shadow:
-          0 28px 72px rgba(0, 0, 0, 0.28),
-          inset 0 1px 0 rgba(255, 255, 255, 0.05);
-        overflow: hidden;
+        max-width: none;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 0;
+        background: none;
+        box-shadow: none;
+        backdrop-filter: none;
       }
 
       #archive .beat-inner::before,
-      #enter .beat-inner::before {
+      #enter .beat-inner::before,
+      #archive .beat-inner::after,
+      #enter .beat-inner::after {
+        display: none;
+      }
+
+      #archive.beat,
+      #enter.beat {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        min-height: auto;
+        padding: 0;
+        overflow: visible;
+        align-items: stretch;
+      }
+
+      .beat--poster .beat-inner {
+        text-align: left;
+        display: block;
+        max-width: 1080px;
+      }
+
+      #archive.beat--poster .beat-inner,
+      #enter.beat--poster .beat-inner {
+        max-width: none;
+        display: block;
+      }
+
+      #enter.beat--poster .beat-inner {
+        text-align: center;
+      }
+
+      /* ── Archive: full-bleed index ── */
+      .poster-shell {
+        position: relative;
+        width: 100%;
+        max-width: 100%;
+        padding: clamp(4.5rem, 10vh, 6.5rem) clamp(1.25rem, 4vw, 3rem) clamp(3rem, 6vh, 4.5rem);
+        border: none;
+        border-radius: 0;
+        background: none;
+        backdrop-filter: none;
+        box-shadow: none;
+      }
+
+      .poster-shell::before {
         content: '';
         position: absolute;
         inset: 0;
-        border-radius: inherit;
-        padding: 1px;
-        background: linear-gradient(155deg,
-          rgba(var(--phosphor-rgb), 0.28),
-          transparent 35%,
-          transparent 65%,
-          rgba(var(--violet-rgb), 0.2));
-        mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-        mask-composite: exclude;
         pointer-events: none;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 55% 42% at 16% 18%, rgba(var(--phosphor-rgb), 0.1) 0%, transparent 70%),
+          radial-gradient(ellipse 45% 38% at 88% 72%, rgba(var(--violet-rgb), 0.08) 0%, transparent 68%),
+          radial-gradient(ellipse 40% 30% at 52% 100%, rgba(var(--cyan-rgb), 0.05) 0%, transparent 65%);
+      }
+
+      .poster-shell--archive {
+        display: grid;
+        gap: 0;
+      }
+
+      .poster-grid-bg {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(rgba(var(--phosphor-rgb), 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(var(--phosphor-rgb), 0.04) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: radial-gradient(ellipse at 22% 12%, #000 0%, transparent 72%);
+        opacity: 0.5;
+      }
+
+      .poster-corners {
+        position: absolute;
+        inset: clamp(1.1rem, 3vw, 2rem);
+        pointer-events: none;
+      }
+
+      .poster-corners span {
+        position: absolute;
+        width: 18px;
+        height: 18px;
+        border-color: rgba(var(--cyan-rgb), 0.35);
+        border-style: solid;
+      }
+
+      .poster-corners span:nth-child(1) { top: 0; left: 0; border-width: 1px 0 0 1px; }
+      .poster-corners span:nth-child(2) { top: 0; right: 0; border-width: 1px 1px 0 0; }
+      .poster-corners span:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+      .poster-corners span:nth-child(4) { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
+
+      .poster-mark {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 8%;
+        z-index: 0;
+        margin: 0;
+        padding: 0 1rem;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: clamp(4.5rem, 18vw, 12rem);
+        line-height: 0.82;
+        letter-spacing: -0.07em;
+        text-transform: uppercase;
+        text-align: center;
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(var(--phosphor-rgb), 0.1);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .poster-mark em {
+        display: block;
+        font-style: normal;
+        font-size: 0.22em;
+        letter-spacing: 0.34em;
+        -webkit-text-stroke: 1px rgba(var(--cyan-rgb), 0.1);
+        margin-top: 0.12em;
+      }
+
+      .poster-masthead {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 0.7rem;
+        padding-bottom: 2.25rem;
+        border-bottom: none;
+      }
+
+      .poster-masthead__rail {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-family: var(--font-mono);
+        font-size: var(--type-micro);
+        letter-spacing: var(--track-label);
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .poster-masthead__tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.28rem 0.55rem;
+        border: 1px solid rgba(var(--phosphor-rgb), 0.2);
+        background: rgba(var(--phosphor-rgb), 0.06);
+        color: var(--phosphor);
+        letter-spacing: 0.16em;
+      }
+
+      .poster-masthead__code {
+        color: var(--cyan);
         opacity: 0.75;
       }
 
-      #archive .beat-inner::after {
-        content: '';
+      .poster-title {
+        display: grid;
+        gap: 0.05em;
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 800;
+        line-height: 0.9;
+        letter-spacing: -0.04em;
+        text-wrap: balance;
+      }
+
+      .poster-title__line {
+        font-size: clamp(2rem, 6vw, 3.5rem);
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .poster-title__accent {
+        font-size: clamp(3rem, 10vw, 6.25rem);
+        background: linear-gradient(115deg, var(--phosphor) 0%, var(--cyan) 45%, var(--violet) 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .poster-masthead__sub {
+        margin: 0;
+        max-width: 36ch;
+        font-family: var(--font-mono);
+        font-size: var(--type-micro);
+        letter-spacing: 0.06em;
+        text-transform: lowercase;
+        color: var(--text-muted);
+      }
+
+      .poster-volumes {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+        margin-top: 0.35rem;
+        width: 100%;
+        align-items: stretch;
+      }
+
+      @media (min-width: 860px) {
+        .poster-volumes {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 1.15rem;
+          align-items: end;
+        }
+
+        .vol-spine--01 { min-height: 24.5rem; }
+        .vol-spine--02 { min-height: 20rem; margin-bottom: 2rem; }
+        .vol-spine--03 { min-height: 22.5rem; margin-bottom: 0.7rem; }
+      }
+
+      .vol-spine {
+        --card-accent: var(--phosphor-rgb);
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        min-height: 18rem;
+        padding: 1.2rem 1.15rem 1.15rem 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        background:
+          repeating-linear-gradient(
+            -22deg,
+            transparent 0 14px,
+            rgba(var(--card-accent), 0.035) 14px 15px
+          ),
+          linear-gradient(180deg, rgba(var(--card-accent), 0.1) 0%, rgba(4, 10, 16, 0.42) 48%, rgba(4, 10, 16, 0.62) 100%);
+        border: none;
+        border-radius: 0;
+        border-left: 2px solid rgba(var(--card-accent), 0.55);
+        backdrop-filter: none;
+        box-shadow: none;
+        overflow: hidden;
+        flex-direction: column;
+        opacity: calc(0.4 + var(--card-reveal, 0) * 0.6);
+        transform: translateY(var(--card-lift, 16px));
+        transition: border-color 0.35s ease, transform 0.35s ease, background 0.35s ease;
+      }
+
+      .vol-spine.card::before,
+      .vol-spine.card::after {
+        display: none;
+      }
+
+      .vol-spine--01 { --card-accent: var(--phosphor-rgb); }
+      .vol-spine--02 { --card-accent: var(--cyan-rgb); }
+      .vol-spine--03 { --card-accent: var(--violet-rgb); }
+
+      .vol-spine__ruler {
         position: absolute;
+        left: 0;
         top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: min(60%, 320px);
+        bottom: 0;
+        width: 12px;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(
+            to bottom,
+            rgba(var(--card-accent), 0.45) 0 1px,
+            transparent 1px 9px
+          );
+        -webkit-mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+        mask-image: linear-gradient(180deg, transparent, #000 10%, #000 90%, transparent);
+        opacity: 0.7;
+      }
+
+      .vol-spine__slash {
+        position: absolute;
+        top: 34%;
+        left: -8%;
+        width: 78%;
         height: 1px;
-        background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent, rgba(var(--card-accent), 0.45), transparent);
+        transform: rotate(-16deg);
+        transform-origin: left center;
+      }
+
+      .vol-spine__code {
+        position: relative;
+        z-index: 1;
+        font-family: var(--font-mono);
+        font-size: var(--type-micro);
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgb(var(--card-accent));
+      }
+
+      .vol-spine__num {
+        position: relative;
+        z-index: 0;
+        flex: 1 1 auto;
+        display: flex;
+        align-items: flex-end;
+        margin: 0 -0.12em 0.1rem;
+        font-family: var(--font-display);
+        font-size: clamp(5.75rem, 13vw, 10.5rem);
+        font-weight: 800;
+        line-height: 0.72;
+        letter-spacing: -0.08em;
+        color: rgba(var(--card-accent), 0.16);
+        -webkit-text-stroke: 1px rgba(var(--card-accent), 0.42);
+        pointer-events: none;
+        user-select: none;
+        transition: color 0.4s ease, -webkit-text-stroke-color 0.4s ease;
+      }
+
+      .vol-spine__copy {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 0.4rem;
+        max-width: none;
+      }
+
+      .vol-spine__copy h3 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-size: clamp(1.45rem, 3.2vw, 2.05rem);
+        font-weight: 800;
+        letter-spacing: -0.035em;
+        line-height: 0.95;
+        color: var(--text);
+        text-wrap: balance;
+      }
+
+      .vol-spine__copy p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--text-muted);
+        max-width: 36ch;
+      }
+
+      .vol-spine__cmd {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-top: 0.15rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid rgba(var(--card-accent), 0.2);
+        font-family: var(--font-mono);
+        font-size: var(--type-micro);
+        letter-spacing: 0.06em;
+        color: rgb(var(--card-accent));
+      }
+
+      .vol-spine__cmd i {
+        font-style: normal;
+        opacity: 0.7;
+        transition: transform 0.3s ease, opacity 0.3s ease;
+      }
+
+      .vol-spine:hover,
+      .vol-spine.card:hover {
+        border-color: transparent;
+        border-left-color: rgb(var(--card-accent));
+        background:
+          repeating-linear-gradient(
+            -22deg,
+            transparent 0 14px,
+            rgba(var(--card-accent), 0.05) 14px 15px
+          ),
+          linear-gradient(180deg, rgba(var(--card-accent), 0.16) 0%, rgba(4, 10, 16, 0.5) 100%);
+        box-shadow: none;
+        transform: translateY(calc(var(--card-lift, 0px) - 6px));
+      }
+
+      .vol-spine:hover .vol-spine__num {
+        color: rgba(var(--card-accent), 0.22);
+        -webkit-text-stroke-color: rgba(var(--card-accent), 0.7);
+      }
+
+      .vol-spine:hover .vol-spine__cmd i {
+        transform: translateX(5px);
+        opacity: 1;
+      }
+
+      .poster-strip {
+        position: relative;
+        z-index: 1;
+        margin-top: 2rem;
+        padding-top: 0;
+        border-top: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.5rem;
+      }
+
+      .poster-strip__barcode {
+        display: flex;
+        gap: 2px;
+        justify-content: flex-start;
+        margin-bottom: 0;
+        max-width: min(100%, 22rem);
+        flex-wrap: wrap;
+      }
+
+      .poster-strip__barcode i {
+        display: block;
+        width: 2px;
+        height: 22px;
+        background: rgba(var(--phosphor-rgb), 0.35);
+        flex-shrink: 0;
+      }
+
+      .poster-strip__barcode i:nth-child(3n) { height: 16px; opacity: 0.5; }
+      .poster-strip__barcode i:nth-child(5n) { width: 4px; opacity: 0.75; }
+      .poster-strip__barcode i:nth-child(7n) { height: 26px; }
+
+      .poster-strip .meta-row {
+        margin-top: 0;
+        justify-content: flex-start;
+      }
+
+      /* ── Enter: full-bleed sci-fi poster ── */
+      .eot-poster {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100svh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: clamp(4rem, 10vh, 7rem) clamp(1.25rem, 4vw, 3rem) clamp(4.5rem, 8vh, 6rem);
+        isolation: isolate;
+        overflow: visible;
+      }
+
+      .eot-poster__bloom {
+        position: absolute;
+        inset: 8% 5%;
+        pointer-events: none;
+        z-index: 0;
+        background:
+          radial-gradient(ellipse 55% 45% at 22% 40%, rgba(var(--phosphor-rgb), 0.14) 0%, transparent 70%),
+          radial-gradient(ellipse 50% 40% at 78% 55%, rgba(var(--violet-rgb), 0.12) 0%, transparent 68%),
+          radial-gradient(ellipse 40% 35% at 50% 85%, rgba(var(--cyan-rgb), 0.08) 0%, transparent 65%),
+          radial-gradient(ellipse 70% 50% at 50% 50%, rgba(255, 204, 85, 0.04) 0%, transparent 70%);
+      }
+
+      .eot-poster__grain {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.04;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+        background-size: 160px;
+        mix-blend-mode: soft-light;
+      }
+
+      .eot-poster__wash {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background: linear-gradient(
+          180deg,
+          transparent 0%,
+          rgba(3, 8, 12, 0.15) 40%,
+          rgba(3, 8, 12, 0.42) 100%
+        );
+      }
+
+      .eot-poster__slash {
+        position: absolute;
+        top: 12%;
+        left: 8%;
+        width: min(42vw, 28rem);
+        height: 1px;
+        pointer-events: none;
+        z-index: 1;
+        background: linear-gradient(90deg, transparent, rgba(var(--phosphor-rgb), 0.35), rgba(var(--cyan-rgb), 0.2), transparent);
+        transform: rotate(-18deg);
+        transform-origin: left center;
+      }
+
+      .eot-poster__slash--b {
+        top: auto;
+        bottom: 18%;
+        left: auto;
+        right: 6%;
+        width: min(36vw, 22rem);
+        transform: rotate(12deg);
+        transform-origin: right center;
+        background: linear-gradient(90deg, transparent, rgba(var(--violet-rgb), 0.25), rgba(255, 204, 85, 0.2), transparent);
+      }
+
+      .eot-poster__orb {
+        position: absolute;
+        width: min(28vw, 16rem);
+        height: min(28vw, 16rem);
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 0;
+        background: radial-gradient(circle, rgba(var(--phosphor-rgb), 0.12) 0%, transparent 70%);
+        filter: blur(2px);
+      }
+
+      .eot-poster__orb--a {
+        top: 18%;
+        right: 12%;
+      }
+
+      .eot-poster__orb--b {
+        bottom: 14%;
+        left: 8%;
+        width: min(22vw, 12rem);
+        height: min(22vw, 12rem);
+        background: radial-gradient(circle, rgba(var(--violet-rgb), 0.1) 0%, transparent 70%);
+      }
+
+      .eot-poster__mark {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 48%;
+        transform: translateY(-50%);
+        width: 100%;
+        padding: 0 1rem;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: clamp(4rem, 18vw, 12rem);
+        line-height: 0.85;
+        letter-spacing: -0.06em;
+        text-transform: uppercase;
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(var(--phosphor-rgb), 0.1);
+        pointer-events: none;
+        z-index: 0;
+        user-select: none;
+        text-align: center;
+      }
+
+      .eot-poster__mark em {
+        font-style: normal;
+        display: block;
+        font-size: 0.42em;
+        letter-spacing: 0.28em;
+        -webkit-text-stroke: 1px rgba(var(--cyan-rgb), 0.08);
+        margin-top: 0.15em;
+      }
+
+      .eot-poster__shards {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .eot-poster__shards span {
+        position: absolute;
+        display: block;
+        background: linear-gradient(135deg, rgba(var(--phosphor-rgb), 0.35), rgba(var(--cyan-rgb), 0.15));
         opacity: 0.45;
+      }
+
+      .eot-poster__shards span:nth-child(1) {
+        top: 22%;
+        left: 6%;
+        width: 48px;
+        height: 2px;
+        transform: rotate(-32deg);
+      }
+
+      .eot-poster__shards span:nth-child(2) {
+        top: 28%;
+        left: 7%;
+        width: 22px;
+        height: 2px;
+        transform: rotate(-32deg);
+        opacity: 0.3;
+        background: rgba(var(--violet-rgb), 0.4);
+      }
+
+      .eot-poster__shards span:nth-child(3) {
+        top: 62%;
+        right: 8%;
+        width: 56px;
+        height: 2px;
+        transform: rotate(24deg);
+        background: linear-gradient(90deg, rgba(255, 204, 85, 0.4), transparent);
+      }
+
+      .eot-poster__shards span:nth-child(4) {
+        bottom: 24%;
+        right: 10%;
+        width: 3px;
+        height: 36px;
+        transform: rotate(18deg);
+        background: rgba(var(--cyan-rgb), 0.25);
+      }
+
+      .eot-poster__shards span:nth-child(5) {
+        top: 38%;
+        right: 14%;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(var(--phosphor-rgb), 0.35);
+        box-shadow: 0 0 16px rgba(var(--phosphor-rgb), 0.25);
+      }
+
+      .eot-poster__code {
+        position: absolute;
+        font-family: var(--font-mono);
+        font-size: clamp(0.5rem, 1.1vw, 0.62rem);
+        letter-spacing: 0.08em;
+        color: rgba(var(--phosphor-rgb), 0.28);
         pointer-events: none;
+        z-index: 1;
+        white-space: nowrap;
+        user-select: none;
       }
 
-      #enter .beat-inner {
-        max-width: 44rem;
-        border-color: rgba(255, 204, 85, 0.16);
-        background: linear-gradient(168deg,
-          rgba(12, 16, 14, 0.58) 0%,
-          rgba(8, 10, 12, 0.4) 100%);
+      .eot-poster__code--tl {
+        top: clamp(1.5rem, 4vh, 3rem);
+        left: clamp(1.25rem, 4vw, 3rem);
+        text-align: left;
       }
 
-      #enter .beat-inner::before {
-        background: linear-gradient(155deg,
-          rgba(255, 204, 85, 0.22),
-          transparent 40%,
-          transparent 60%,
-          rgba(var(--phosphor-rgb), 0.15));
+      .eot-poster__code--tr {
+        top: clamp(1.5rem, 4vh, 3rem);
+        right: clamp(1.25rem, 4vw, 3rem);
+        text-align: right;
+        color: rgba(var(--cyan-rgb), 0.28);
       }
 
-      #enter .beat-inner::after {
+      .eot-poster__code--bl {
+        bottom: clamp(3.25rem, 7vh, 4.5rem);
+        left: clamp(1.25rem, 4vw, 3rem);
+        color: rgba(var(--violet-rgb), 0.3);
+      }
+
+      .eot-poster__code--br {
+        bottom: clamp(3.25rem, 7vh, 4.5rem);
+        right: clamp(1.25rem, 4vw, 3rem);
+        text-align: right;
+        color: rgba(255, 204, 85, 0.32);
+      }
+
+      .eot-poster__rail {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        writing-mode: vertical-rl;
+        font-family: var(--font-mono);
+        font-size: 0.55rem;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+        color: rgba(var(--phosphor-rgb), 0.28);
+        pointer-events: none;
+        z-index: 1;
+        user-select: none;
+      }
+
+      .eot-poster__rail--l {
+        left: clamp(0.75rem, 2.5vw, 2rem);
+        transform: translateY(-50%) rotate(180deg);
+      }
+
+      .eot-poster__rail--r {
+        right: clamp(0.75rem, 2.5vw, 2rem);
+        color: rgba(var(--cyan-rgb), 0.28);
+      }
+
+      @media (max-width: 720px) {
+        .eot-poster__rail,
+        .eot-poster__code--bl,
+        .eot-poster__code--br {
+          display: none;
+        }
+      }
+
+      .eot-poster__core {
+        position: relative;
+        z-index: 3;
+        width: min(100%, 42rem);
+        margin: 0 auto;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .eot-poster__core::before {
         content: '';
         position: absolute;
-        top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: min(50%, 240px);
-        height: 1px;
-        background: linear-gradient(90deg, transparent, var(--amber), transparent);
-        opacity: 0.5;
+        inset: -18% -12%;
+        z-index: -1;
         pointer-events: none;
+        background: radial-gradient(ellipse at 50% 42%, rgba(3, 8, 12, 0.62) 0%, transparent 72%);
+      }
+
+      .eot-poster__sig {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        margin-bottom: 1.35rem;
+        font-family: var(--font-mono);
+        font-size: var(--type-label);
+        font-weight: 500;
+        letter-spacing: var(--track-wide);
+        text-transform: uppercase;
+        color: var(--amber);
+      }
+
+      .eot-poster__sig::before,
+      .eot-poster__sig::after {
+        content: '';
+        width: clamp(1.5rem, 6vw, 3rem);
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 204, 85, 0.45));
+      }
+
+      .eot-poster__sig::after {
+        background: linear-gradient(90deg, rgba(255, 204, 85, 0.45), transparent);
+      }
+
+      .eot-poster__sig i {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--amber);
+        box-shadow: 0 0 10px rgba(255, 204, 85, 0.45);
+        flex-shrink: 0;
+        animation: telemetry 2.8s ease-in-out infinite;
+      }
+
+      .eot-poster__title {
+        margin: 0 0 1.15rem;
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: clamp(2.4rem, 8vw, 5.25rem);
+        line-height: 0.92;
+        letter-spacing: -0.045em;
+        text-wrap: balance;
+        color: var(--text);
+      }
+
+      .eot-poster__title .eot-poster__line {
+        display: block;
+        font-weight: 600;
+        font-size: 0.38em;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 0.55em;
+      }
+
+      .eot-poster__title .eot-poster__accent {
+        display: block;
+        background: linear-gradient(
+          115deg,
+          var(--phosphor) 0%,
+          var(--cyan) 35%,
+          var(--violet) 65%,
+          var(--amber) 100%
+        );
+        background-size: 180% auto;
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: none;
+        filter: drop-shadow(0 0 28px rgba(var(--phosphor-rgb), 0.18));
+        animation: phosphorShift 10s linear infinite;
+      }
+
+      .eot-poster__lead {
+        margin: 0;
+        max-width: 36ch;
+        font-size: var(--type-lead);
+        font-weight: 400;
+        color: var(--text-muted);
+        line-height: var(--leading-relaxed);
+        letter-spacing: -0.01em;
+        text-wrap: pretty;
+      }
+
+      .eot-poster__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.65rem 1.25rem;
+        margin-top: 1.75rem;
+        font-family: var(--font-mono);
+        font-size: var(--type-micro);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .eot-poster__meta span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .eot-poster__meta strong {
+        color: var(--phosphor);
+        font-weight: 600;
+      }
+
+      .eot-poster__meta em {
+        font-style: normal;
+        color: var(--cyan);
+      }
+
+      #enter .eot-poster .hero-actions {
+        margin-top: 2.25rem;
+        justify-content: center;
+      }
+
+      #enter .eot-poster .btn--primary {
+        padding: 0.95rem 1.75rem;
+        border-color: rgba(var(--phosphor-rgb), 0.35);
+        background: rgba(var(--phosphor-rgb), 0.08);
+        color: var(--phosphor);
+      }
+
+      #enter .eot-poster .btn--primary:hover {
+        border-color: var(--cyan);
+        background: rgba(var(--cyan-rgb), 0.1);
+        color: var(--cyan);
+      }
+
+      /* ── Enter: infected machine visualization ── */
+      .eot-infect {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      .eot-infect__veil {
+        position: absolute;
+        inset: 16% 8% 22% 52%;
+        background:
+          linear-gradient(158deg, rgba(var(--violet-rgb), 0.09) 0%, transparent 58%),
+          radial-gradient(ellipse at 70% 30%, rgba(255, 204, 85, 0.06), transparent 62%);
+        clip-path: polygon(10% 0, 100% 6%, 92% 100%, 0 88%);
+        mix-blend-mode: screen;
+        opacity: 0.85;
+      }
+
+      .eot-infect__chrome {
+        position: absolute;
+        top: clamp(1.1rem, 3vh, 2.25rem);
+        left: clamp(1.1rem, 3.5vw, 2.75rem);
+        right: clamp(1.1rem, 3.5vw, 2.75rem);
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: end;
+        gap: 1rem;
+        z-index: 2;
+      }
+
+      .eot-infect__id {
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: clamp(0.5rem, 1.05vw, 0.6rem);
+        letter-spacing: 0.1em;
+        line-height: 1.55;
+        color: rgba(var(--phosphor-rgb), 0.38);
+        text-transform: uppercase;
+      }
+
+      .eot-infect__id span {
+        display: block;
+      }
+
+      .eot-infect__id--r {
+        text-align: right;
+        color: rgba(var(--cyan-rgb), 0.36);
+        justify-self: end;
+      }
+
+      .eot-infect__id .is-over s {
+        text-decoration: line-through;
+        text-decoration-color: rgba(var(--violet-rgb), 0.55);
+        color: rgba(var(--phosphor-rgb), 0.22);
+      }
+
+      .eot-infect__id .is-over i {
+        font-style: normal;
+        color: var(--amber);
+        margin-left: 0.35em;
+        text-shadow: 0 0 10px rgba(255, 204, 85, 0.25);
+      }
+
+      .eot-infect__id .is-dup {
+        position: relative;
+      }
+
+      .eot-infect__id .is-dup::after {
+        content: attr(data-echo);
+        position: absolute;
+        right: 5px;
+        top: 1px;
+        color: var(--violet);
+        opacity: 0.32;
+        clip-path: inset(40% 0 18% 0);
+        letter-spacing: 0.12em;
+      }
+
+      .eot-infect__id mark {
+        background: rgba(255, 204, 85, 0.14);
+        color: var(--amber);
+        font: inherit;
+        padding: 0 0.28em;
+        border-radius: 2px;
+      }
+
+      .eot-infect__entropy {
+        display: flex;
+        align-items: flex-end;
+        gap: 0.65rem;
+        padding-bottom: 0.1rem;
+      }
+
+      .eot-infect__entropy-label {
+        font-family: var(--font-mono);
+        font-size: 0.5rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(var(--phosphor-rgb), 0.3);
+        white-space: nowrap;
+      }
+
+      .eot-infect__entropy-label strong {
+        color: var(--amber);
+        font-weight: 500;
+        margin-left: 0.4em;
+      }
+
+      .eot-infect__entropy-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 22px;
+      }
+
+      .eot-infect__entropy-bars i {
+        display: block;
+        width: 3px;
+        height: calc(4px + var(--h, 0.4) * 18px);
+        background: rgba(var(--phosphor-rgb), 0.28);
+        transform: skewX(-12deg);
+      }
+
+      .eot-infect__entropy-bars i.is-hot {
+        background: var(--amber);
+        box-shadow: 0 0 8px rgba(255, 204, 85, 0.35);
+      }
+
+      .eot-infect__entropy-bars i.is-void {
+        background: rgba(var(--violet-rgb), 0.45);
+      }
+
+      .eot-dump {
+        position: absolute;
+        margin: 0;
+        font-family: var(--font-mono);
+        font-size: clamp(0.48rem, 0.95vw, 0.58rem);
+        font-weight: 400;
+        line-height: 1.62;
+        letter-spacing: 0.02em;
+        color: rgba(var(--phosphor-rgb), 0.2);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .eot-dump--asm {
+        top: 22%;
+        left: clamp(1rem, 3vw, 2.25rem);
+        width: min(36vw, 24rem);
+        -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 72%, transparent 100%);
+        mask-image: linear-gradient(180deg, transparent 0%, #000 10%, #000 72%, transparent 100%);
+      }
+
+      .eot-dump--hex {
+        top: 20%;
+        right: clamp(1rem, 3vw, 2.25rem);
+        width: min(32vw, 20rem);
+        text-align: left;
+        color: rgba(var(--cyan-rgb), 0.18);
+        -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 76%, transparent 100%);
+        mask-image: linear-gradient(180deg, transparent 0%, #000 8%, #000 76%, transparent 100%);
+      }
+
+      .eot-dump__ln {
+        display: block;
+        position: relative;
+      }
+
+      .eot-dump__ln b {
+        font-weight: 500;
+        color: rgba(var(--cyan-rgb), 0.32);
+        margin-right: 0.85em;
+      }
+
+      .eot-dump__ln em {
+        font-style: normal;
+        color: rgba(var(--phosphor-rgb), 0.16);
+        margin-left: 0.85em;
+      }
+
+      .eot-dump__ln.is-fade {
+        opacity: 0.42;
+      }
+
+      .eot-dump__ln.is-infect {
+        color: rgba(var(--phosphor-rgb), 0.7);
+        background: linear-gradient(90deg, rgba(255, 204, 85, 0.1), transparent 78%);
+        box-shadow: inset 2px 0 0 var(--amber);
+        padding: 0 0.35em 0 0.45em;
+        margin-left: -0.45em;
+      }
+
+      .eot-dump__ln.is-infect b { color: var(--amber); }
+      .eot-dump__ln.is-infect em { color: rgba(255, 204, 85, 0.55); }
+
+      .eot-dump__ln.is-offset {
+        transform: translateX(0.85rem);
+        opacity: 0.48;
+        border-left: 1px solid rgba(var(--cyan-rgb), 0.22);
+        padding-left: 0.45rem;
+      }
+
+      .eot-dump__ln.is-clip {
+        clip-path: inset(0 26% 0 0);
+        opacity: 0.38;
+      }
+
+      .eot-dump__ln.is-dup::after {
+        content: attr(data-echo);
+        position: absolute;
+        left: 7px;
+        top: 1px;
+        color: var(--cyan);
+        opacity: 0.28;
+        clip-path: inset(38% 8% 12% 0);
+        pointer-events: none;
+        white-space: pre;
+      }
+
+      .eot-dump__ln.is-redact::after {
+        content: '';
+        position: absolute;
+        left: 38%;
+        top: 18%;
+        width: 32%;
+        height: 64%;
+        background: repeating-linear-gradient(
+          -18deg,
+          rgba(3, 8, 12, 0.92) 0 3px,
+          rgba(var(--violet-rgb), 0.22) 3px 5px
+        );
+      }
+
+      .eot-dump mark {
+        background: rgba(255, 204, 85, 0.16);
+        color: var(--amber);
+        font: inherit;
+        padding: 0 0.12em;
+        border-radius: 1px;
+        box-shadow: 0 0 10px rgba(255, 204, 85, 0.12);
+      }
+
+      .eot-infect__asm {
+        position: absolute;
+        font-family: var(--font-mono);
+        font-size: clamp(0.52rem, 1.05vw, 0.64rem);
+        letter-spacing: 0.04em;
+        color: rgba(var(--phosphor-rgb), 0.42);
+        line-height: 1.45;
+        max-width: 22ch;
+      }
+
+      .eot-infect__asm--a {
+        top: 31%;
+        right: 5%;
+        color: rgba(var(--cyan-rgb), 0.4);
+        transform: rotate(6deg);
+      }
+
+      .eot-infect__asm--a::after {
+        content: attr(data-echo);
+        position: absolute;
+        left: 4px;
+        top: 2px;
+        color: var(--violet);
+        opacity: 0.28;
+        clip-path: inset(0 0 45% 0);
+        white-space: pre;
+      }
+
+      .eot-infect__asm--b {
+        bottom: 27%;
+        left: 11%;
+        transform: rotate(-8deg);
+        color: rgba(var(--violet-rgb), 0.4);
+        clip-path: inset(0 12% 0 0);
+      }
+
+      .eot-infect__asm--c {
+        top: 58%;
+        right: 8%;
+        color: rgba(255, 204, 85, 0.38);
+        transform: translateX(6px);
+        opacity: 0.7;
+      }
+
+      .eot-infect__asm kbd {
+        font: inherit;
+        background: rgba(var(--phosphor-rgb), 0.08);
+        color: var(--phosphor);
+        padding: 0 0.28em;
+        border-radius: 2px;
+        border: 1px solid rgba(var(--phosphor-rgb), 0.16);
+      }
+
+      .eot-cfg {
+        position: absolute;
+        bottom: 16%;
+        left: clamp(1.25rem, 4vw, 3rem);
+        width: min(22vw, 9.5rem);
+        opacity: 0.7;
+      }
+
+      .eot-cfg svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+
+      .eot-infect__stamp {
+        position: absolute;
+        top: 18%;
+        right: 5%;
+        padding: 0.55rem 0.85rem 0.45rem;
+        border: 1px solid rgba(255, 204, 85, 0.28);
+        color: rgba(255, 204, 85, 0.55);
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: clamp(0.7rem, 1.6vw, 0.95rem);
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        transform: rotate(14deg);
+        background: rgba(255, 204, 85, 0.04);
+        box-shadow: inset 0 0 0 3px rgba(255, 204, 85, 0.08);
+        mix-blend-mode: screen;
+      }
+
+      .eot-infect__stamp small {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.45em;
+        letter-spacing: 0.22em;
+        font-weight: 500;
+        margin-top: 0.2em;
+        color: rgba(var(--violet-rgb), 0.55);
+      }
+
+      .eot-infect__tear {
+        position: absolute;
+        bottom: 18%;
+        right: 7%;
+        width: min(32vw, 18rem);
+        padding: 0.65rem 0.75rem;
+        font-family: var(--font-mono);
+        font-size: 0.52rem;
+        line-height: 1.55;
+        letter-spacing: 0.04em;
+        color: rgba(var(--cyan-rgb), 0.32);
+        background: rgba(3, 8, 12, 0.28);
+        border-top: 1px solid rgba(var(--cyan-rgb), 0.16);
+        border-bottom: 1px solid rgba(var(--violet-rgb), 0.16);
+        transform: rotate(-4deg) translateX(8px);
+        clip-path: polygon(0 8%, 100% 0, 96% 100%, 4% 92%);
+        mix-blend-mode: screen;
+      }
+
+      .eot-infect__tear span {
+        display: block;
+      }
+
+      .eot-infect__tear span:nth-child(2) {
+        transform: translateX(10px);
+        color: var(--violet);
+        opacity: 0.55;
+        clip-path: inset(0 18% 0 0);
+      }
+
+      .eot-infect__tear span:nth-child(3) {
+        opacity: 0.35;
+        text-decoration: line-through;
+        text-decoration-color: rgba(255, 204, 85, 0.4);
+      }
+
+      .eot-poster__mark--infect {
+        -webkit-text-stroke: 1px rgba(var(--violet-rgb), 0.12);
+        transform: translate(10px, calc(-50% + 8px));
+        clip-path: inset(42% 0 22% 0);
+        mix-blend-mode: screen;
+        opacity: 0.7;
+      }
+
+      .eot-poster__accent-wrap {
+        position: relative;
+        display: block;
+        white-space: nowrap;
+      }
+
+      .eot-poster__ghost {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        font: inherit;
+        font-weight: 800;
+        letter-spacing: inherit;
+        line-height: inherit;
+        color: var(--cyan);
+        opacity: 0.2;
+        transform: translate(7px, 3px);
+        clip-path: inset(8% 0 52% 0);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .eot-poster__ghost--b {
+        color: var(--violet);
+        opacity: 0.14;
+        transform: translate(-9px, -2px);
+        clip-path: inset(58% 6% 4% 0);
+        mix-blend-mode: screen;
+      }
+
+      .eot-poster__code--bl s {
+        text-decoration: line-through;
+        text-decoration-color: rgba(var(--violet-rgb), 0.5);
+        color: rgba(var(--violet-rgb), 0.35);
+      }
+
+      .eot-poster__code--bl i {
+        font-style: normal;
+        color: var(--amber);
+        margin-left: 0.35em;
+      }
+
+      .site-foot {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 4;
+        margin: 0;
+        padding: 1.05rem clamp(1.25rem, 4vw, 3rem) 1.25rem;
+        border: none;
+        border-radius: 0;
+        background: transparent;
+        backdrop-filter: none;
+        box-shadow: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.45rem 1.5rem;
+        font-family: var(--font-mono);
+        font-size: clamp(0.5rem, 1.05vw, 0.6rem);
+        font-weight: 400;
+        letter-spacing: 0.1em;
+        color: rgba(var(--phosphor-rgb), 0.38);
+        pointer-events: auto;
+      }
+
+      .site-foot a {
+        color: rgba(var(--cyan-rgb), 0.42);
+        text-decoration: none;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .site-foot a:hover {
+        color: var(--phosphor);
+      }
+
+      @media (max-width: 1100px) {
+        .eot-infect__stamp,
+        .eot-infect__asm--a,
+        .eot-infect__asm--c {
+          display: none;
+        }
+      }
+
+      @media (max-width: 960px) {
+        .eot-dump--hex,
+        .eot-cfg,
+        .eot-infect__tear,
+        .eot-infect__entropy {
+          display: none;
+        }
+
+        .eot-infect__chrome {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .eot-poster {
+          min-height: auto;
+          padding: 4.5rem 1.25rem 4.25rem;
+        }
+
+        .poster-shell {
+          padding: 4.25rem 1.25rem 2.75rem;
+        }
+
+        .poster-mark {
+          font-size: clamp(3.5rem, 28vw, 6.5rem);
+          top: 5%;
+        }
+
+        .eot-poster__mark {
+          font-size: clamp(4rem, 28vw, 8rem);
+        }
+
+        .eot-poster__shards span:nth-child(1),
+        .eot-poster__shards span:nth-child(2) {
+          left: 4%;
+        }
+
+        .eot-dump--asm,
+        .eot-infect__asm,
+        .eot-infect__stamp,
+        .eot-infect__veil {
+          display: none;
+        }
+
+        .eot-infect__chrome {
+          grid-template-columns: 1fr;
+          gap: 0.35rem;
+        }
+
+        .eot-infect__id--r {
+          text-align: left;
+          justify-self: start;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .eot-poster__title .eot-poster__accent,
+        .eot-poster__sig i {
+          animation: none;
+        }
       }
 
       .construct-frame {
@@ -2160,18 +3477,6 @@
         pointer-events: none;
       }
 
-      #enter .btn--primary {
-        padding: 0.95rem 1.65rem;
-        border-color: rgba(255, 204, 85, 0.35);
-        background: rgba(255, 204, 85, 0.06);
-        color: var(--amber);
-      }
-
-      #enter .btn--primary:hover {
-        border-color: var(--phosphor);
-        background: rgba(var(--phosphor-rgb), 0.1);
-        color: var(--phosphor);
-      }
       .btn__prompt {
         color: var(--cyan);
         opacity: 0.85;
@@ -2253,8 +3558,7 @@
 
       html.low-power .nav-nexus__deck,
       html.low-power .hero-signal__unit,
-      html.low-power #archive .beat-inner,
-      html.low-power #enter .beat-inner,
+      html.low-power .poster-shell,
       html.low-power footer,
       html.low-power .scroll-hint,
       html.low-power .card {
@@ -2271,8 +3575,21 @@
       html.low-power .net-mesh,
       html.low-power .ice-fall,
       html.low-power .signal-glitch,
-      html.low-power .sweep-beam {
+      html.low-power .sweep-beam,
+      html.low-power .eot-poster__grain,
+      html.low-power .eot-dump,
+      html.low-power .eot-cfg,
+      html.low-power .eot-infect__tear,
+      html.low-power .eot-infect__entropy-bars {
         display: none;
+      }
+
+      html.low-power .eot-dump--asm,
+      html.low-power .eot-dump--hex,
+      html.low-power .eot-dump mark,
+      html.low-power .eot-poster__ghost,
+      html.low-power .eot-poster__mark--infect {
+        animation: none !important;
       }
 
       /* Touch-first tablets: kill expensive scroll composites before JS hydrates */
@@ -2283,8 +3600,7 @@
         }
         .nav-nexus__deck,
         .hero-signal__unit,
-        #archive .beat-inner,
-        #enter .beat-inner,
+        .poster-shell,
         footer,
         .scroll-hint,
         .card {
@@ -2295,7 +3611,10 @@
         .net-mesh,
         .ice-fall,
         .signal-glitch,
-        .sweep-beam {
+        .sweep-beam,
+        .eot-dump,
+        .eot-cfg,
+        .eot-infect__tear {
           display: none;
         }
         .scroll-hint,
@@ -2374,29 +3693,10 @@
         50% { opacity: 0.95; transform: translateX(-50%) translateY(6px); }
       }
 
-      footer {
-        position: relative; z-index: 10;
-        margin: 0 2rem 2rem;
-        padding: 1.25rem 1.5rem;
-        border: 1px solid var(--border);
-        border-radius: var(--radius-md);
-        background: rgba(6, 14, 20, 0.45);
-        backdrop-filter: blur(12px);
-        display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;
-        font-size: var(--type-micro);
-        font-weight: 400;
-        letter-spacing: var(--track-label);
-        color: var(--text-muted);
-      }
-      footer a { color: var(--text-muted); text-decoration: none; }
-      footer a:hover { color: var(--phosphor); }
-
       @media (max-width: 768px) {
         .nav-nexus__deck,
         .hero-signal__unit,
-        #archive .beat-inner,
-        #enter .beat-inner,
-        footer {
+        .poster-shell {
           backdrop-filter: blur(10px) saturate(1.1);
         }
         nav {
@@ -2412,7 +3712,8 @@
         .nav-cta { font-size: 0.62rem; padding: 0.42rem 0.85rem; }
         .beat { padding: 5.5rem 1.25rem 4rem; }
         .beat--hero { padding-top: 5.75rem; }
-        footer { margin: 0 1.25rem 1.25rem; }
+        #enter.beat,
+        #archive.beat { padding: 0; }
       }
     </style>
   </head>
@@ -2622,67 +3923,234 @@
         <p class="scroll-hint">scroll <em>▼</em></p>
       </section>
 
-      <section class="beat beat--center" data-section id="archive">
+      <section class="beat beat--poster" data-section id="archive">
         <div class="beat-inner">
-          <p class="signal">// volumes[]</p>
-          <h2 class="title-section">Indexed <span>Sections</span></h2>
-          <div class="card-grid card-grid--bento">
-            <a href="/getting-started/introduction/overview/" class="card">
-              <p class="card__idx">vol.01</p>
-              <div class="card__body">
-                <h3 class="card__title">Field Notes</h3>
-                <p class="card__desc">Walkthroughs, methodology, and step-by-step reconstructions of isolated environments.</p>
+          <div class="poster-shell poster-shell--archive">
+            <p class="poster-mark" aria-hidden="true">INDEX<em>VOL.01–03</em></p>
+            <div class="poster-grid-bg" aria-hidden="true"></div>
+            <div class="poster-corners" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+
+            <header class="poster-masthead">
+              <div class="poster-masthead__rail">
+                <span class="poster-masthead__tag">// volumes[]</span>
+                <span class="poster-masthead__code">IDX · 001 · MOUNT</span>
               </div>
-              <p class="card__arrow">→ cd ./notes</p>
-            </a>
-            <a href="/pentesterlab/introduction/overview/" class="card">
-              <p class="card__idx">vol.02</p>
-              <div class="card__body">
-                <h3 class="card__title">Lab Sessions</h3>
-                <p class="card__desc">Challenge writeups, flag chains, and session logs from hands-on practice runs.</p>
+              <h2 class="poster-title">
+                <span class="poster-title__line">Indexed</span>
+                <span class="poster-title__accent">Sections</span>
+              </h2>
+              <p class="poster-masthead__sub">annotated paths · indexed findings · reconstructed chains</p>
+            </header>
+
+            <div class="poster-volumes">
+              <a href="/getting-started/introduction/overview/" class="card vol-spine vol-spine--01">
+                <span class="vol-spine__ruler" aria-hidden="true"></span>
+                <span class="vol-spine__slash" aria-hidden="true"></span>
+                <span class="vol-spine__code">vol.01 · .notes</span>
+                <span class="vol-spine__num" aria-hidden="true">01</span>
+                <div class="vol-spine__copy">
+                  <h3>Field Notes</h3>
+                  <p>Walkthroughs, methodology, and step-by-step reconstructions of isolated environments.</p>
+                </div>
+                <span class="vol-spine__cmd">cd ./notes <i aria-hidden="true">→</i></span>
+              </a>
+              <a href="/pentesterlab/introduction/overview/" class="card vol-spine vol-spine--02">
+                <span class="vol-spine__ruler" aria-hidden="true"></span>
+                <span class="vol-spine__slash" aria-hidden="true"></span>
+                <span class="vol-spine__code">vol.02 · .labs</span>
+                <span class="vol-spine__num" aria-hidden="true">02</span>
+                <div class="vol-spine__copy">
+                  <h3>Lab Sessions</h3>
+                  <p>Challenge writeups, flag chains, and session logs from hands-on practice runs.</p>
+                </div>
+                <span class="vol-spine__cmd">cd ./labs <i aria-hidden="true">→</i></span>
+              </a>
+              <a href="/tools/" class="card vol-spine vol-spine--03">
+                <span class="vol-spine__ruler" aria-hidden="true"></span>
+                <span class="vol-spine__slash" aria-hidden="true"></span>
+                <span class="vol-spine__code">vol.03 · .tools</span>
+                <span class="vol-spine__num" aria-hidden="true">03</span>
+                <div class="vol-spine__copy">
+                  <h3>Tooling</h3>
+                  <p>Scripts, repos, and utilities from research sessions.</p>
+                </div>
+                <span class="vol-spine__cmd">ls ./tools <i aria-hidden="true">→</i></span>
+              </a>
+            </div>
+
+            <footer class="poster-strip">
+              <div class="poster-strip__barcode" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
               </div>
-              <p class="card__arrow">→ cd ./labs</p>
-            </a>
-            <a href="/tools/" class="card">
-              <p class="card__idx">vol.03</p>
-              <div class="card__body">
-                <h3 class="card__title">Tooling</h3>
-                <p class="card__desc">Scripts, repos, and utilities from research sessions.</p>
+              <div class="meta-row">
+                <span>status: <strong>active</strong></span>
+                <span>format: <strong>markdown</strong></span>
+                <span>access: <strong>read-only</strong></span>
               </div>
-              <p class="card__arrow">→ ls ./tools</p>
-            </a>
-          </div>
-          <div class="meta-row">
-            <span>status: <strong>active</strong></span>
-            <span>format: <strong>markdown</strong></span>
-            <span>access: <strong>read-only</strong></span>
+            </footer>
           </div>
         </div>
       </section>
 
-      <section class="beat beat--center" data-section id="enter">
+      <section class="beat beat--poster" data-section id="enter">
         <div class="beat-inner">
-          <p class="signal signal--warn">// end_of_transmission</p>
-          <h2 class="title-section">Enter the <span>Archive</span></h2>
-          <p class="lead">
-            Everything here is documentation — rough edges included.
-            Pick a volume and start reading.
-          </p>
-          <div class="hero-actions">
-            <a href="/getting-started/introduction/overview/" class="btn btn--primary">
-              <span class="btn__prompt">&gt;</span>
-              <span class="btn__label">cd ./docs</span>
-              <span class="btn__arrow" aria-hidden="true">→</span>
-            </a>
+          <div class="eot-poster">
+            <div class="eot-poster__bloom" aria-hidden="true"></div>
+            <div class="eot-poster__wash" aria-hidden="true"></div>
+            <div class="eot-poster__grain" aria-hidden="true"></div>
+            <div class="eot-poster__orb eot-poster__orb--a" aria-hidden="true"></div>
+            <div class="eot-poster__orb eot-poster__orb--b" aria-hidden="true"></div>
+            <div class="eot-poster__slash" aria-hidden="true"></div>
+            <div class="eot-poster__slash eot-poster__slash--b" aria-hidden="true"></div>
+            <div class="eot-poster__shards" aria-hidden="true">
+              <span></span><span></span><span></span><span></span><span></span>
+            </div>
+
+            <div class="eot-infect" aria-hidden="true">
+              <div class="eot-infect__veil"></div>
+
+              <header class="eot-infect__chrome">
+                <p class="eot-infect__id">
+                  <span>SIG · PROTOCOL-7</span>
+                  <span class="is-over">LAYER · 01 · <s>WIRED</s><i>MOUNT</i></span>
+                </p>
+                <div class="eot-infect__entropy">
+                  <span class="eot-infect__entropy-label">entropy<strong>7.91</strong></span>
+                  <div class="eot-infect__entropy-bars">
+                    <i style="--h:0.22"></i><i style="--h:0.38"></i><i style="--h:0.18"></i>
+                    <i style="--h:0.55"></i><i style="--h:0.42"></i><i style="--h:0.7"></i>
+                    <i style="--h:0.33"></i><i class="is-hot" style="--h:0.92"></i><i class="is-hot" style="--h:1"></i>
+                    <i class="is-void" style="--h:0.78"></i><i style="--h:0.48"></i><i style="--h:0.26"></i>
+                    <i style="--h:0.61"></i><i class="is-hot" style="--h:0.86"></i><i style="--h:0.4"></i>
+                    <i style="--h:0.2"></i><i style="--h:0.34"></i><i class="is-void" style="--h:0.58"></i>
+                    <i style="--h:0.29"></i><i style="--h:0.16"></i>
+                  </div>
+                </div>
+                <p class="eot-infect__id eot-infect__id--r">
+                  <span>NODE · v0iid.local</span>
+                  <span class="is-dup" data-echo="LINK · ESTABLISHED">LINK · <mark>INFECT</mark></span>
+                </p>
+              </header>
+
+              <div class="eot-dump eot-dump--asm">
+                <span class="eot-dump__ln is-fade"><b>401140</b>55                 <em>push rbp</em></span>
+                <span class="eot-dump__ln"><b>401141</b>48 89 e5           <em>mov rbp, rsp</em></span>
+                <span class="eot-dump__ln is-clip"><b>401144</b>48 83 ec 10        <em>sub rsp, 0x10</em></span>
+                <span class="eot-dump__ln"><b>401148</b>48 89 7d f8        <em>mov [rbp-0x8], rdi</em></span>
+                <span class="eot-dump__ln"><b>40114c</b>48 83 7d f8 00     <em>cmp qword [rbp-0x8], 0</em></span>
+                <span class="eot-dump__ln is-infect"><b>401151</b><mark>74 0f</mark>              <em>je 0x401162</em></span>
+                <span class="eot-dump__ln"><b>401153</b>48 8b 45 f8        <em>mov rax, [rbp-0x8]</em></span>
+                <span class="eot-dump__ln is-offset"><b>401157</b>0f b6 00           <em>movzx eax, byte [rax]</em></span>
+                <span class="eot-dump__ln"><b>40115a</b>84 c0              <em>test al, al</em></span>
+                <span class="eot-dump__ln is-dup" data-echo="40115c  74 04              je 0x401162"><b>40115c</b>74 04              <em>je 0x401162</em></span>
+                <span class="eot-dump__ln is-infect"><b>40115e</b>31 c0              <em>xor eax, eax</em></span>
+                <span class="eot-dump__ln"><b>401160</b>eb 05              <em>jmp 0x401167</em></span>
+                <span class="eot-dump__ln is-redact"><b>401162</b>b8 ff ff ff ff     <em>mov eax, 0xffffffff</em></span>
+                <span class="eot-dump__ln is-fade"><b>401167</b>c9                 <em>leave</em></span>
+                <span class="eot-dump__ln is-fade"><b>401168</b>c3                 <em>ret</em></span>
+              </div>
+
+              <div class="eot-dump eot-dump--hex">
+                <span class="eot-dump__ln is-fade"><b>401140</b>55 48 89 e5  48 83 ec 10</span>
+                <span class="eot-dump__ln"><b>401148</b>48 89 7d f8  48 83 7d f8</span>
+                <span class="eot-dump__ln is-infect"><b>401150</b>00 <mark>74 0f</mark> 48  8b 45 f8 0f</span>
+                <span class="eot-dump__ln is-offset"><b>401158</b>b6 00 84 c0  74 04 31 c0</span>
+                <span class="eot-dump__ln"><b>401160</b>eb 05 b8 ff  ff ff ff c9</span>
+                <span class="eot-dump__ln is-dup" data-echo="401168  c3 90 90 90  90 90 90 90"><b>401168</b>c3 90 90 90  90 90 90 90</span>
+                <span class="eot-dump__ln"><b>401170</b>48 89 f8 80  38 00 74 05</span>
+                <span class="eot-dump__ln is-clip"><b>401178</b>48 ff c0 eb  f6 48 29 f8</span>
+                <span class="eot-dump__ln is-fade"><b>401180</b>c3</span>
+              </div>
+
+              <p class="eot-infect__asm eot-infect__asm--a" data-echo="je 0x401162">
+                cmp qword [rbp-0x8], 0<br/>je <kbd>0x401162</kbd>
+              </p>
+              <p class="eot-infect__asm eot-infect__asm--b">
+                movzx eax, byte [rax]<br/>test al, al
+              </p>
+              <p class="eot-infect__asm eot-infect__asm--c">
+                <kbd>0x401140</kbd>  archive_mount
+              </p>
+
+              <div class="eot-infect__stamp">
+                VECTOR
+                <small>401140 · mount</small>
+              </div>
+
+              <div class="eot-infect__tear">
+                <span>401151  74 0f     je 0x401162</span>
+                <span>401151  74 0f     je 0x401162</span>
+                <span>40115e  31 c0     xor eax, eax</span>
+              </div>
+
+              <div class="eot-cfg">
+                <svg viewBox="0 0 160 170" fill="none" aria-hidden="true">
+                  <line x1="80" y1="28" x2="80" y2="52" stroke="rgba(93,255,176,0.28)" stroke-width="1"/>
+                  <line x1="80" y1="76" x2="38" y2="104" stroke="rgba(62,240,232,0.28)" stroke-width="1"/>
+                  <line x1="80" y1="76" x2="122" y2="104" stroke="rgba(255,204,85,0.4)" stroke-width="1"/>
+                  <line x1="38" y1="128" x2="80" y2="150" stroke="rgba(62,240,232,0.22)" stroke-width="1"/>
+                  <line x1="122" y1="128" x2="80" y2="150" stroke="rgba(255,204,85,0.28)" stroke-width="1"/>
+                  <rect x="56" y="8" width="48" height="20" rx="2" stroke="rgba(93,255,176,0.4)"/>
+                  <rect x="56" y="52" width="48" height="24" rx="2" stroke="rgba(62,240,232,0.4)"/>
+                  <rect x="14" y="104" width="48" height="24" rx="2" stroke="rgba(62,240,232,0.28)"/>
+                  <rect x="98" y="104" width="48" height="24" rx="2" fill="rgba(255,204,85,0.08)" stroke="rgba(255,204,85,0.55)"/>
+                  <rect x="56" y="150" width="48" height="16" rx="2" stroke="rgba(196,180,255,0.35)"/>
+                  <circle cx="122" cy="116" r="2.5" fill="#ffcc55"/>
+                </svg>
+              </div>
+            </div>
+
+            <p class="eot-poster__mark" aria-hidden="true">ARCHIVE<em>0xEOT</em></p>
+            <p class="eot-poster__mark eot-poster__mark--infect" aria-hidden="true">ARCHIVE<em>0x7F</em></p>
+            <p class="eot-poster__code eot-poster__code--bl" aria-hidden="true">
+              payload · <s>read-only</s><i>mapped</i> · markdown
+            </p>
+            <p class="eot-poster__code eot-poster__code--br" aria-hidden="true">
+              end_of_transmission · ok
+            </p>
+            <span class="eot-poster__rail eot-poster__rail--l" aria-hidden="true">infect · sync · mount</span>
+            <span class="eot-poster__rail eot-poster__rail--r" aria-hidden="true">enter · archive · read</span>
+
+            <div class="eot-poster__core">
+              <p class="eot-poster__sig"><i></i>end of transmission</p>
+              <h2 class="eot-poster__title">
+                <span class="eot-poster__line">transmission complete</span>
+                Enter the
+                <span class="eot-poster__accent-wrap">
+                  <span class="eot-poster__ghost">Archive</span>
+                  <span class="eot-poster__ghost eot-poster__ghost--b">Archive</span>
+                  <span class="eot-poster__accent">Archive</span>
+                </span>
+              </h2>
+              <p class="eot-poster__lead">
+                Everything here is documentation — rough edges included.
+                Pick a volume and start reading.
+              </p>
+              <div class="eot-poster__meta" aria-hidden="true">
+                <span>status <strong>active</strong></span>
+                <span>image <em>0xEOT</em></span>
+                <span>access <strong>read-only</strong></span>
+              </div>
+              <div class="hero-actions">
+                <a href="/getting-started/introduction/overview/" class="btn btn--primary">
+                  <span class="btn__prompt">&gt;</span>
+                  <span class="btn__label">cd ./docs</span>
+                  <span class="btn__arrow" aria-hidden="true">→</span>
+                </a>
+              </div>
+            </div>
+            <footer class="site-foot">
+              <span>© {new Date().getFullYear()} v0iid · personal research ledger</span>
+              <a href="/about/">about</a>
+            </footer>
           </div>
         </div>
       </section>
     </main>
-
-    <footer>
-      <span>© {new Date().getFullYear()} v0iid · personal research ledger</span>
-      <a href="/about/">about</a>
-    </footer>
 
     <script>
       import { mountVoidPage } from '../scripts/dimension.ts';
