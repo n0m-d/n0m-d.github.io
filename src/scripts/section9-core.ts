@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { isLowPowerDevice } from './low-power';
 
 /* GHOST WIRE — Neuromancer × GitS depth field, soft focus on dossier */
 
@@ -90,6 +91,10 @@ export class Section9Scene {
   private depthReadout: HTMLElement | null = null;
   private bootStatus: HTMLElement | null = null;
   private reducedMotion = false;
+  private lowPower = false;
+  private uiFrame = 0;
+  private lastHudState = -1;
+  private lastCss: Record<string, string> = {};
   private lastScrollY = 0;
   private bootTimers: ReturnType<typeof setTimeout>[] = [];
   private destroyed = false;
@@ -108,18 +113,22 @@ export class Section9Scene {
 
   constructor(canvas: HTMLCanvasElement) {
     this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.lowPower = isLowPowerDevice();
 
     this.initDom();
 
     try {
       this.renderer = new THREE.WebGLRenderer({
         canvas,
-        antialias: true,
+        antialias: !this.lowPower,
         alpha: false,
-        powerPreference: 'high-performance',
+        powerPreference: this.lowPower ? 'low-power' : 'high-performance',
       });
       this.renderer.setPixelRatio(
-        Math.min(window.devicePixelRatio, window.innerWidth < 768 ? 1 : 1.5)
+        Math.min(
+          window.devicePixelRatio,
+          this.lowPower ? 1 : window.innerWidth < 768 ? 1 : 1.5
+        )
       );
       this.renderer.setClearColor(VOID, 1);
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -147,7 +156,7 @@ export class Section9Scene {
     this.syncScrollState();
     this.updateUI(this.scroll);
 
-    if (!this.reducedMotion) this.runBoot();
+    if (!this.reducedMotion && !this.lowPower) this.runBoot();
     else this.dismissBoot();
   }
 
@@ -696,17 +705,20 @@ export class Section9Scene {
       this.targetScroll = max > 0 ? window.scrollY / max : 0;
       this.scrollVel = window.scrollY - lastY;
       this.lastScrollY = window.scrollY;
+      lastY = window.scrollY;
       if (this.progressBar) this.progressBar.style.transform = `scaleX(${this.targetScroll})`;
-      document.documentElement.style.setProperty('--scroll', String(this.targetScroll));
+      if (!this.lowPower) this.setCssVar('--scroll', String(this.targetScroll));
     }, { passive: true, signal });
     window.addEventListener('resize', () => this.onResize(), { signal });
-    window.addEventListener('mousemove', (e) => {
-      if (this.destroyed) return;
-      this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-      document.documentElement.style.setProperty('--mx', `${e.clientX}px`);
-      document.documentElement.style.setProperty('--my', `${e.clientY}px`);
-    }, { signal });
+    if (!this.lowPower) {
+      window.addEventListener('mousemove', (e) => {
+        if (this.destroyed) return;
+        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        this.setCssVar('--mx', `${e.clientX}px`);
+        this.setCssVar('--my', `${e.clientY}px`);
+      }, { signal });
+    }
     document.addEventListener('visibilitychange', () => {
       this.visible = !document.hidden;
       if (this.visible) this.clock.getDelta();
@@ -1049,62 +1061,114 @@ export class Section9Scene {
     (this.scene.fog as THREE.FogExp2).density = 0.007 + focus * 0.002;
   }
 
+  private setCssVar(name: string, value: string) {
+    if (this.lastCss[name] === value) return;
+    this.lastCss[name] = value;
+    document.documentElement.style.setProperty(name, value);
+  }
+
   private updateUI(s: number) {
-    const targetFocus = this.contentFocus();
-    this.smoothFocus += (targetFocus - this.smoothFocus) * 0.07;
+    this.uiFrame++;
 
-    const hue = Math.floor(this.time * 12 + s * 60) % 360;
-    const blur = this.smoothFocus * 4;
-    const bloom = (1 - this.smoothFocus) * 0.4;
+    // Live filter/blur on `.backdrop` + many CSS vars = tablet scroll flicker.
+    if (this.lowPower) {
+      this.setCssVar('--hue', '260');
+      this.setCssVar('--vel', '0');
+      this.setCssVar('--bloom', '0.55');
+      this.setCssVar('--tilt', '0deg');
+      this.setCssVar('--focus', '0');
+      this.setCssVar('--bg-blur', '0');
+      this.setCssVar('--pulse', '0.5');
+      this.setCssVar('--parallax', '0px');
+      this.setCssVar('--dive', '0');
+      this.setCssVar('--scan', '0');
 
-    document.documentElement.style.setProperty('--parallax', `${(this.smoothMouse.y * 6).toFixed(1)}px`);
-    document.documentElement.style.setProperty('--dive', String(s));
-    document.documentElement.style.setProperty('--vel', String(Math.min(Math.abs(this.smoothScrollVel) * 0.02, 1)));
-    document.documentElement.style.setProperty('--hue', String(hue));
-    document.documentElement.style.setProperty('--bloom', String(bloom));
-    document.documentElement.style.setProperty('--focus', String(this.smoothFocus));
-    document.documentElement.style.setProperty('--bg-blur', String(blur));
-    document.documentElement.style.setProperty('--pulse', String(0.5 + Math.sin(this.time * 1.2) * 0.5));
-    document.documentElement.style.setProperty('--scan', String(this.smoothFocus));
-    document.documentElement.style.setProperty('--tilt', `${(this.smoothMouse.x * 4).toFixed(2)}deg`);
-
-    this.sectionEls.forEach((el) => {
-      const rect = el.getBoundingClientRect();
-      const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
-      const v = Math.max(0, 1 - dist * 1.25);
-      el.style.setProperty('--reveal', String(v));
-      el.classList.toggle('is-active', this.sectionIsActive(el.id, v));
-
-      const isSticky = Section9Scene.STICKY_SECTIONS.has(el.id);
-      const ease = v * v * (3 - 2 * v);
-      el.style.setProperty('--section-reveal', isSticky ? '1' : String(ease));
-
-      if (!isSticky) {
-        el.querySelectorAll<HTMLElement>('.stat-block, .clearance-card, .vector-tag, .sector-tag, .quote').forEach((child, i) => {
-          const stagger = i * 0.06;
-          const cv = Math.max(0, Math.min(1, (v - stagger) / (1 - stagger)));
-          const ce = cv * cv * (3 - 2 * cv);
-          child.style.setProperty('--child-reveal', String(ce));
-          child.style.setProperty('--child-shift', `${(1 - ce) * (i % 2 === 0 ? -10 : 10)}px`);
+      if (this.uiFrame === 1 || this.uiFrame % 10 === 0) {
+        this.sectionEls.forEach((el) => {
+          if (el.style.getPropertyValue('--section-reveal') !== '1') {
+            el.style.setProperty('--section-reveal', '1');
+            el.style.setProperty('--reveal', '1');
+          }
+          if (Section9Scene.STICKY_SECTIONS.has(el.id) && !el.classList.contains('is-active')) {
+            el.classList.add('is-active');
+            this.revealedSections.add(el.id);
+          }
         });
       }
-    });
+    } else {
+      const targetFocus = this.contentFocus();
+      this.smoothFocus += (targetFocus - this.smoothFocus) * 0.07;
 
-    const hudFrame = document.querySelector('.hud-frame');
-    if (hudFrame) {
-      (hudFrame as HTMLElement).style.opacity = String(0.35 + (1 - this.smoothFocus) * 0.35);
+      const hue = Math.floor(this.time * 12 + s * 60) % 360;
+      const blur = (this.smoothFocus * 4).toFixed(2);
+      const bloom = ((1 - this.smoothFocus) * 0.4).toFixed(3);
+      const focus = this.smoothFocus.toFixed(3);
+
+      this.setCssVar('--parallax', `${(this.smoothMouse.y * 6).toFixed(1)}px`);
+      this.setCssVar('--dive', s.toFixed(3));
+      this.setCssVar('--vel', Math.min(Math.abs(this.smoothScrollVel) * 0.02, 1).toFixed(3));
+      this.setCssVar('--hue', String(hue));
+      this.setCssVar('--bloom', bloom);
+      this.setCssVar('--focus', focus);
+      this.setCssVar('--bg-blur', blur);
+      this.setCssVar('--pulse', (0.5 + Math.sin(this.time * 1.2) * 0.5).toFixed(3));
+      this.setCssVar('--scan', focus);
+      this.setCssVar('--tilt', `${(this.smoothMouse.x * 4).toFixed(2)}deg`);
+
+      const layoutPass = this.uiFrame % 2 === 0;
+      if (layoutPass) {
+        this.sectionEls.forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          const dist = Math.abs(rect.top + rect.height / 2 - window.innerHeight / 2) / window.innerHeight;
+          const v = Math.max(0, 1 - dist * 1.25);
+          const vStr = v.toFixed(3);
+          if (el.style.getPropertyValue('--reveal') !== vStr) {
+            el.style.setProperty('--reveal', vStr);
+          }
+          el.classList.toggle('is-active', this.sectionIsActive(el.id, v));
+
+          const isSticky = Section9Scene.STICKY_SECTIONS.has(el.id);
+          const ease = v * v * (3 - 2 * v);
+          const easeStr = isSticky ? '1' : ease.toFixed(3);
+          if (el.style.getPropertyValue('--section-reveal') !== easeStr) {
+            el.style.setProperty('--section-reveal', easeStr);
+          }
+
+          if (!isSticky) {
+            el.querySelectorAll<HTMLElement>('.stat-block, .clearance-card, .vector-tag, .sector-tag, .quote').forEach((child, i) => {
+              const stagger = i * 0.06;
+              const cv = Math.max(0, Math.min(1, (v - stagger) / (1 - stagger)));
+              const ce = cv * cv * (3 - 2 * cv);
+              const ceStr = ce.toFixed(3);
+              if (child.style.getPropertyValue('--child-reveal') !== ceStr) {
+                child.style.setProperty('--child-reveal', ceStr);
+                child.style.setProperty('--child-shift', `${((1 - ce) * (i % 2 === 0 ? -10 : 10)).toFixed(1)}px`);
+              }
+            });
+          }
+        });
+      }
+
+      const hudFrame = document.querySelector('.hud-frame');
+      if (hudFrame) {
+        (hudFrame as HTMLElement).style.opacity = String(0.35 + (1 - this.smoothFocus) * 0.35);
+      }
     }
 
-    if (this.syncReadout) {
-      const state = this.smoothFocus > 0.5
-        ? 'FOCUS:shell'
-        : this.hudStates[Math.floor(this.time * 0.35) % this.hudStates.length];
-      this.syncReadout.textContent = state;
-    }
-    if (this.depthReadout) {
-      this.depthReadout.textContent = this.smoothFocus > 0.35
-        ? `ICE:${Math.floor(this.smoothFocus * 100).toString().padStart(3, '0')}`
-        : `NET:${hue.toString().padStart(3, '0')}`;
+    const hue = this.lowPower ? 260 : Math.floor(this.time * 12 + s * 60) % 360;
+    const stateIdx = this.smoothFocus > 0.5 ? -1 : Math.floor(this.time * 0.35) % this.hudStates.length;
+    if (this.uiFrame % 4 === 0 || stateIdx !== this.lastHudState) {
+      this.lastHudState = stateIdx;
+      if (this.syncReadout) {
+        this.syncReadout.textContent = this.smoothFocus > 0.5
+          ? 'FOCUS:shell'
+          : this.hudStates[Math.floor(this.time * 0.35) % this.hudStates.length];
+      }
+      if (this.depthReadout) {
+        this.depthReadout.textContent = this.smoothFocus > 0.35
+          ? `ICE:${Math.floor(this.smoothFocus * 100).toString().padStart(3, '0')}`
+          : `NET:${hue.toString().padStart(3, '0')}`;
+      }
     }
   }
 
@@ -1115,14 +1179,18 @@ export class Section9Scene {
     const dt = Math.min(this.clock.getDelta(), 0.05);
     this.time = this.clock.getElapsedTime();
     this.scroll += (this.targetScroll - this.scroll) * 0.06;
-    this.smoothMouse.lerp(this.mouse, 0.06);
     this.smoothScrollVel += (this.scrollVel - this.smoothScrollVel) * 0.14;
     this.scrollVel *= 0.85;
+    if (!this.lowPower) this.smoothMouse.lerp(this.mouse, 0.06);
 
-    this.updateCamera(this.scroll, this.smoothFocus, dt);
-    this.updateScene(this.scroll, this.time, dt, this.smoothFocus);
+    const skipScene = this.lowPower && (this.uiFrame + 1) % 2 === 0;
+
     this.updateUI(this.scroll);
-    this.renderer.render(this.scene, this.camera);
+    if (!skipScene) {
+      this.updateCamera(this.scroll, this.smoothFocus, dt);
+      this.updateScene(this.scroll, this.time, dt, this.smoothFocus);
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 }
 

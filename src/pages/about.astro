@@ -1658,6 +1658,182 @@
         .hud-tl, .hud-tr, .hud-bl, .hud-br { font-size: 0.45rem; }
       }
 
+      @media (prefers-reduced-motion: no-preference) {
+        html.hidden-tab *,
+        html.hidden-tab *::before,
+        html.hidden-tab *::after {
+          animation-play-state: paused !important;
+        }
+      }
+
+      /* Tablets / phones: live backdrop blur + html zoom + per-frame CSS vars flicker on scroll. */
+      html.low-power {
+        zoom: 1;
+        font-size: 110%;
+        scroll-behavior: auto;
+      }
+
+      html.low-power .scanlines,
+      html.low-power .scan-beam,
+      html.low-power .hex-bg,
+      html.low-power .hex-bg::before,
+      html.low-power .hex-bg::after,
+      html.low-power .chroma-bleed::before,
+      html.low-power .chroma-bleed::after,
+      html.low-power .interference,
+      html.low-power .synapse-lines,
+      html.low-power .ice-fall span,
+      html.low-power .net-mesh,
+      html.low-power .data-stream,
+      html.low-power .hud-frame,
+      html.low-power .scroll-cue,
+      html.low-power .construct-frame span,
+      html.low-power .nav-brand .void,
+      html.low-power .ghost-title .ghost-word,
+      html.low-power .ghost-title .ghost-word::before,
+      html.low-power .ghost-title .ghost-word::after,
+      html.low-power .ghost-title .shell-word,
+      html.low-power .slab-scan,
+      html.low-power .slab::before,
+      html.low-power .slab::after,
+      html.low-power .clearance-card::after,
+      html.low-power #dossier .ice-frame span,
+      html.low-power #dossier .ice-shimmer,
+      html.low-power #dossier .ice-link,
+      html.low-power #dossier .ice-hex,
+      html.low-power #dossier .ice-wave,
+      html.low-power #clearance .vault-stamp__ring {
+        animation: none !important;
+      }
+
+      html.low-power .slab,
+      html.low-power .clearance-card,
+      html.low-power #clearance .clearance-card {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+
+      html.low-power .backdrop {
+        filter: none !important;
+        transform: none !important;
+      }
+
+      html.low-power .chroma-bleed,
+      html.low-power .hex-bg,
+      html.low-power .interference,
+      html.low-power .synapse-lines,
+      html.low-power .ice-fall,
+      html.low-power .scanlines,
+      html.low-power .scan-beam,
+      html.low-power .net-mesh,
+      html.low-power .data-stream,
+      html.low-power .noise {
+        display: none;
+      }
+
+      html.low-power body::before,
+      html.low-power body::after {
+        display: none;
+      }
+
+      html.low-power .sector { --section-reveal: 1; --reveal: 1; }
+      html.low-power .hero-wrap,
+      html.low-power .slab-wrap { opacity: 1; transform: none; }
+      html.low-power .ghost-title { transform: none; filter: none; transition: none; }
+      html.low-power .sector:not(.sector--hero) { content-visibility: visible; }
+
+      html.low-power #dossier .bio-text,
+      html.low-power #dossier .ice-label,
+      html.low-power #dossier .ice-dots,
+      html.low-power #dossier .vector-tag,
+      html.low-power #dossier .stat-block,
+      html.low-power #clearance .vault-badge,
+      html.low-power #clearance .vault-stamp,
+      html.low-power #clearance .vault-cred,
+      html.low-power #clearance .vault-footer,
+      html.low-power #clearance .clearance-card {
+        opacity: 1;
+        transform: none;
+        animation: none !important;
+        clip-path: none;
+        filter: none;
+      }
+
+      html.low-power #clearance .clearance-level span.vault-bar--lit {
+        transform: scaleX(1);
+        opacity: 1;
+        animation: none !important;
+      }
+
+      html.low-power #dossier .ice-wave { opacity: 0.6; transform: scaleX(1); }
+
+      @media (pointer: coarse), (hover: none) {
+        html {
+          zoom: 1;
+          font-size: 110%;
+          scroll-behavior: auto;
+        }
+        .backdrop {
+          filter: none !important;
+          transform: none !important;
+        }
+        .slab,
+        .clearance-card,
+        #clearance .clearance-card {
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+        }
+        .chroma-bleed,
+        .hex-bg,
+        .interference,
+        .synapse-lines,
+        .ice-fall,
+        .scanlines,
+        .scan-beam,
+        .net-mesh,
+        .data-stream,
+        .noise {
+          display: none;
+        }
+        body::before,
+        body::after {
+          display: none;
+        }
+        .scroll-cue,
+        .hud-frame,
+        .nav-brand .void,
+        .ghost-title .ghost-word,
+        .ghost-title .ghost-word::before,
+        .ghost-title .ghost-word::after {
+          animation: none !important;
+        }
+        .sector { --section-reveal: 1; --reveal: 1; }
+        .hero-wrap, .slab-wrap { opacity: 1; transform: none; }
+        .sector-tag, .quote { --child-reveal: 1; --child-shift: 0px; opacity: 1; transform: none; }
+        .ghost-title { transform: none; filter: none; transition: none; }
+        .sector:not(.sector--hero) { content-visibility: visible; }
+        #dossier .bio-text,
+        #dossier .ice-label,
+        #dossier .ice-dots,
+        #dossier .vector-tag,
+        #dossier .stat-block,
+        #clearance .vault-badge,
+        #clearance .vault-stamp,
+        #clearance .vault-cred,
+        #clearance .vault-footer,
+        #clearance .clearance-card {
+          opacity: 1;
+          transform: none;
+          animation: none !important;
+          filter: none;
+        }
+        #clearance .clearance-level span.vault-bar--lit {
+          transform: scaleX(1);
+          opacity: 1;
+          animation: none !important;
+        }
+      }
+
       @media (prefers-reduced-motion: reduce) {
         .sector { --section-reveal: 1; }
         .hero-wrap, .slab-wrap { opacity: 1; transform: none; }
@@ -1692,6 +1868,20 @@
         .ghost-title { transform: none; }
       }
     </style>
+    <script is:inline>
+      try {
+        var coarse = window.matchMedia('(pointer: coarse)').matches;
+        var noHover = window.matchMedia('(hover: none)').matches;
+        var anyCoarse = window.matchMedia('(any-pointer: coarse)').matches;
+        var points = navigator.maxTouchPoints || 0;
+        var shortSide = Math.min(window.innerWidth, window.innerHeight);
+        var longSide = Math.max(window.innerWidth, window.innerHeight);
+        if ((coarse && noHover) || (anyCoarse && noHover && points > 1) ||
+            (anyCoarse && points > 1 && shortSide >= 600 && longSide <= 1366)) {
+          document.documentElement.classList.add('low-power');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="boot-screen" class="boot-screen">

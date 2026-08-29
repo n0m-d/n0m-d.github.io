@@ -1,11 +1,19 @@
 import type { Section9Scene } from './section9-core';
+import { isLowPowerDevice } from './low-power';
 
 let aboutInstance: Section9Scene | null = null;
 let tabPauseBound = false;
 
+function applyDeviceHints(): void {
+  if (isLowPowerDevice()) {
+    document.documentElement.classList.add('low-power');
+  }
+}
+
 function bindTabPause(): void {
   if (tabPauseBound) return;
   tabPauseBound = true;
+  document.documentElement.classList.toggle('hidden-tab', document.hidden);
   document.addEventListener('visibilitychange', () => {
     document.documentElement.classList.toggle('hidden-tab', document.hidden);
   });
@@ -22,6 +30,7 @@ function idle(maxMs = 600): Promise<void> {
 }
 
 export async function bootAboutPage(): Promise<void> {
+  applyDeviceHints();
   const canvas = document.getElementById('section9-canvas') as HTMLCanvasElement | null;
   if (!canvas) return;
   aboutInstance?.destroy();
@@ -39,6 +48,7 @@ declare global {
 }
 
 export function mountAboutPage(): void {
+  applyDeviceHints();
   bindTabPause();
   void bootAboutPage();
   if (window.__aboutPageMounted) return;
