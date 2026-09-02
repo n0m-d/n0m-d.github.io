@@ -1,5 +1,8 @@
 ---
-// GHOST WIRE — Neuromancer × Ghost in the Shell
+import { Image } from 'astro:assets';
+import { sigils } from '../data/sigils';
+
+const sigilCount = String(sigils.length).padStart(2, '0');
 ---
 
 <!DOCTYPE html>
@@ -392,7 +395,8 @@
         border-color: rgba(var(--ghost-rgb), calc(0.12 + var(--reveal) * 0.15));
       }
       #dossier.is-active .slab,
-      #clearance.is-active .clearance-vault {
+      #clearance.is-active .clearance-vault,
+      #sigils.is-active .sigil-rack {
         box-shadow:
           0 20px 60px rgba(0, 0, 0, 0.3),
           0 0 0 1px rgba(var(--violet-rgb), calc(0.08 + var(--focus) * 0.12)),
@@ -1601,6 +1605,436 @@
         border-color: rgba(var(--ghost-rgb), 0.45);
       }
 
+      /* sigil rack — hanging ID plates on a tension wire */
+      #clearance.sector {
+        min-height: 0;
+        align-items: flex-start;
+        padding-bottom: 0.85rem;
+        content-visibility: visible;
+      }
+
+      #sigils.sector {
+        content-visibility: visible;
+        min-height: 0;
+        align-items: flex-start;
+        padding-top: 0;
+        padding-bottom: 5rem;
+      }
+
+      #sigils .sigil-wrap {
+        max-width: 1040px;
+      }
+
+      .sigil-rack {
+        position: relative;
+        padding: 0.4rem 0 0.85rem;
+        overflow: hidden;
+      }
+
+      .sigil-rack::before,
+      .sigil-rack::after {
+        content: '';
+        position: absolute;
+        top: 3.4rem;
+        bottom: 1.6rem;
+        width: 2.1rem;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .sigil-rack::before {
+        left: 0;
+        background: linear-gradient(90deg, rgba(10, 8, 20, 0.88) 0%, transparent 100%);
+      }
+
+      .sigil-rack::after {
+        right: 0;
+        background: linear-gradient(270deg, rgba(10, 8, 20, 0.92) 0%, transparent 100%);
+      }
+
+      .sigil-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin-bottom: 0.35rem;
+        font-size: 0.48rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      .sigil-head__id { color: var(--cyber); }
+      .sigil-head__meta { color: var(--ghost-dim); }
+
+      .sigil-rail {
+        position: relative;
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: minmax(13.5rem, 15.5rem);
+        gap: 1.35rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 0.5rem;
+        padding: 1.7rem 1.6rem 1.35rem;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-color: rgba(var(--cyber-rgb), 0.45) rgba(var(--violet-rgb), 0.08);
+        scrollbar-width: thin;
+      }
+
+      .sigil-rail::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0.72rem;
+        height: 1px;
+        pointer-events: none;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(var(--cyber-rgb), 0.2) 8%,
+          rgba(var(--magenta-rgb), 0.55) 42%,
+          rgba(var(--cyber-rgb), 0.5) 72%,
+          transparent 100%
+        );
+        box-shadow: 0 0 10px rgba(var(--cyber-rgb), 0.18);
+      }
+
+      .sigil-rail:focus-visible {
+        outline: 1px solid rgba(var(--cyber-rgb), 0.35);
+        outline-offset: 4px;
+      }
+
+      .sigil-rail::-webkit-scrollbar { height: 3px; }
+      .sigil-rail::-webkit-scrollbar-track { background: rgba(var(--violet-rgb), 0.08); }
+      .sigil-rail::-webkit-scrollbar-thumb {
+        background: linear-gradient(90deg, rgba(var(--magenta-rgb), 0.55), rgba(var(--cyber-rgb), 0.7));
+      }
+
+      .sigil-slot {
+        --sigil-accent: var(--cyber-rgb);
+        position: relative;
+        scroll-snap-align: start;
+      }
+
+      .sigil-slot:nth-child(4n+1) { --sigil-accent: var(--cyber-rgb); }
+      .sigil-slot:nth-child(4n+2) { --sigil-accent: var(--magenta-rgb); }
+      .sigil-slot:nth-child(4n+3) { --sigil-accent: var(--violet-rgb); }
+      .sigil-slot:nth-child(4n+4) { --sigil-accent: 232, 200, 168; }
+
+      .sigil-slot:nth-child(even) { margin-top: 1.55rem; }
+
+      .sigil-card {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        align-content: start;
+        gap: 0.55rem;
+        min-height: 17.2rem;
+        padding: 0.95rem 0.9rem 0.9rem;
+        text-decoration: none;
+        color: inherit;
+        background:
+          radial-gradient(ellipse 80% 50% at 50% 28%, rgba(var(--sigil-accent), 0.12), transparent 70%),
+          linear-gradient(165deg, rgba(14, 12, 24, 0.72) 0%, rgba(8, 6, 16, 0.4) 100%);
+        border: 1px solid rgba(var(--sigil-accent), 0.2);
+        clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+        overflow: hidden;
+        transition: border-color 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+      }
+
+      .sigil-card__hanger {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: -1rem;
+        width: 1px;
+        height: 1rem;
+        background: linear-gradient(180deg, rgb(var(--sigil-accent)), rgba(var(--sigil-accent), 0.15));
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .sigil-card__hanger::before,
+      .sigil-card__hanger::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%) rotate(45deg);
+      }
+
+      .sigil-card__hanger::before {
+        top: -3px;
+        width: 7px;
+        height: 7px;
+        border: 1px solid rgb(var(--sigil-accent));
+        background: var(--void);
+        box-shadow: 0 0 8px rgba(var(--sigil-accent), 0.35);
+      }
+
+      .sigil-card__hanger::after {
+        bottom: -3px;
+        width: 5px;
+        height: 5px;
+        background: rgb(var(--sigil-accent));
+        opacity: 0.8;
+      }
+
+      .sigil-slot:nth-child(even) .sigil-card__hanger {
+        top: -2.55rem;
+        height: 2.55rem;
+      }
+
+      .sigil-card__ghost {
+        position: absolute;
+        right: 0.35rem;
+        bottom: 0.55rem;
+        z-index: 0;
+        font-size: 4.4rem;
+        font-weight: 700;
+        line-height: 0.7;
+        letter-spacing: -0.08em;
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(var(--sigil-accent), 0.16);
+        pointer-events: none;
+        user-select: none;
+        transition: color 0.35s ease, -webkit-text-stroke-color 0.35s ease;
+      }
+
+      .sigil-card__scan {
+        position: absolute;
+        left: 0; right: 0; top: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgb(var(--sigil-accent)), transparent);
+        opacity: 0.5;
+        pointer-events: none;
+        z-index: 2;
+      }
+
+      .sigil-card__stamp {
+        position: absolute;
+        top: 0.7rem;
+        right: 0.65rem;
+        z-index: 1;
+        font-size: 0.42rem;
+        letter-spacing: 0.22em;
+        color: rgba(var(--sigil-accent), 0.55);
+        border: 1px solid rgba(var(--sigil-accent), 0.28);
+        padding: 0.18rem 0.28rem 0.12rem;
+        transform: rotate(12deg);
+        pointer-events: none;
+        transition: color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .sigil-card__top {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem;
+        padding-right: 2.4rem;
+      }
+
+      .sigil-card__idx {
+        font-size: 0.42rem;
+        letter-spacing: 0.18em;
+        color: rgba(var(--sigil-accent), 0.8);
+      }
+
+      .sigil-card__code {
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        color: var(--wire);
+        transition: text-shadow 0.35s ease, color 0.35s ease;
+      }
+
+      .sigil-card__well {
+        position: relative;
+        z-index: 1;
+        justify-self: center;
+        display: grid;
+        place-items: center;
+        width: 78%;
+        aspect-ratio: 1;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 50% 42%, rgba(var(--sigil-accent), 0.14), rgba(0, 0, 0, 0.55) 72%);
+        box-shadow:
+          inset 0 0 0 1px rgba(var(--sigil-accent), 0.16),
+          0 0 28px rgba(var(--sigil-accent), 0.08);
+        transition: box-shadow 0.35s ease;
+      }
+
+      .sigil-card__orbit {
+        position: absolute;
+        inset: -9px;
+        border-radius: 50%;
+        border: 1px dashed rgba(var(--sigil-accent), 0.32);
+        pointer-events: none;
+        animation: sigilOrbit 22s linear infinite;
+      }
+
+      .sigil-card__orbit::after {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: 50%;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgb(var(--sigil-accent));
+        box-shadow: 0 0 8px rgb(var(--sigil-accent));
+        transform: translateX(-50%);
+      }
+
+      @keyframes sigilOrbit {
+        to { transform: rotate(360deg); }
+      }
+
+      .sigil-card__art {
+        width: 78%;
+        height: 78%;
+        object-fit: contain;
+        mix-blend-mode: lighten;
+        filter: saturate(1.08);
+        pointer-events: none;
+        transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1), filter 0.4s ease;
+      }
+
+      .sigil-card__meta {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        gap: 0.22rem;
+        min-width: 0;
+      }
+
+      .sigil-card__name {
+        font-size: 0.56rem;
+        line-height: 1.4;
+        letter-spacing: 0.02em;
+        color: var(--text);
+      }
+
+      .sigil-card__issuer {
+        font-size: 0.4rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-dim);
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .sigil-slot {
+          transform-origin: 50% -1.05rem;
+          transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .sigil-slot:nth-child(even) {
+          transform-origin: 50% -2.6rem;
+        }
+
+        .sigil-slot:hover,
+        .sigil-slot:has(:focus-visible) {
+          transform: rotate(-1.8deg) translateY(4px);
+          z-index: 3;
+        }
+
+        .sigil-slot:nth-child(even):hover,
+        .sigil-slot:nth-child(even):has(:focus-visible) {
+          transform: rotate(1.7deg) translateY(4px);
+        }
+
+        .sigil-slot:hover .sigil-card,
+        .sigil-slot:has(:focus-visible) .sigil-card {
+          border-color: rgba(var(--sigil-accent), 0.55);
+          background:
+            radial-gradient(ellipse 80% 50% at 50% 28%, rgba(var(--sigil-accent), 0.22), transparent 70%),
+            linear-gradient(165deg, rgba(16, 14, 28, 0.88) 0%, rgba(8, 6, 16, 0.5) 100%);
+          box-shadow:
+            0 18px 36px rgba(0, 0, 0, 0.35),
+            0 0 28px rgba(var(--sigil-accent), 0.16);
+        }
+
+        .sigil-slot:hover .sigil-card__scan,
+        .sigil-slot:has(:focus-visible) .sigil-card__scan {
+          animation: sigilSweep 0.85s ease-out;
+        }
+
+        .sigil-slot:hover .sigil-card__orbit,
+        .sigil-slot:has(:focus-visible) .sigil-card__orbit {
+          animation-duration: 6s;
+          border-color: rgba(var(--sigil-accent), 0.65);
+        }
+
+        .sigil-slot:hover .sigil-card__art,
+        .sigil-slot:has(:focus-visible) .sigil-card__art {
+          transform: scale(1.07);
+          filter: saturate(1.28) brightness(1.12);
+        }
+
+        .sigil-slot:hover .sigil-card__well,
+        .sigil-slot:has(:focus-visible) .sigil-card__well {
+          box-shadow:
+            inset 0 0 0 1px rgba(var(--sigil-accent), 0.42),
+            0 0 36px rgba(var(--sigil-accent), 0.28);
+        }
+
+        .sigil-slot:hover .sigil-card__ghost,
+        .sigil-slot:has(:focus-visible) .sigil-card__ghost {
+          color: rgba(var(--sigil-accent), 0.1);
+          -webkit-text-stroke-color: rgba(var(--sigil-accent), 0.42);
+        }
+
+        .sigil-slot:hover .sigil-card__stamp,
+        .sigil-slot:has(:focus-visible) .sigil-card__stamp {
+          color: rgb(var(--sigil-accent));
+          border-color: rgba(var(--sigil-accent), 0.75);
+          box-shadow: 0 0 14px rgba(var(--sigil-accent), 0.28);
+        }
+
+        .sigil-slot:hover .sigil-card__code,
+        .sigil-slot:has(:focus-visible) .sigil-card__code {
+          color: #fff;
+          text-shadow: 0 0 12px rgba(var(--sigil-accent), 0.55);
+        }
+
+        .sigil-slot:hover .sigil-card__hanger::before,
+        .sigil-slot:has(:focus-visible) .sigil-card__hanger::before {
+          background: rgb(var(--sigil-accent));
+          box-shadow: 0 0 12px rgb(var(--sigil-accent));
+        }
+      }
+
+      @keyframes sigilSweep {
+        0% { top: 0; opacity: 0; }
+        18% { opacity: 0.95; }
+        100% { top: 100%; opacity: 0; }
+      }
+
+      .sigil-foot {
+        margin-top: 0.1rem;
+        padding: 0 1.5rem;
+        font-size: 0.42rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: rgba(var(--ghost-rgb), 0.32);
+      }
+
+      @media (max-width: 720px) {
+        .sigil-slot:nth-child(even) { margin-top: 0.85rem; }
+        .sigil-slot:nth-child(even) .sigil-card__hanger {
+          top: -1.85rem;
+          height: 1.85rem;
+        }
+        .sigil-card__ghost { font-size: 3.4rem; }
+      }
+
       .egress-title {
         font-size: clamp(1.5rem, 4vw, 2.5rem);
         font-weight: 700;
@@ -1656,6 +2090,8 @@
         #dossier .dossier-grid { grid-template-columns: 1fr; }
         .hud-frame { inset: 0.75rem; }
         .hud-tl, .hud-tr, .hud-bl, .hud-br { font-size: 0.45rem; }
+        #clearance.sector { padding-bottom: 0.5rem; }
+        #sigils.sector { padding-top: 0; padding-bottom: 4rem; }
       }
 
       @media (prefers-reduced-motion: no-preference) {
@@ -1702,7 +2138,8 @@
       html.low-power #dossier .ice-link,
       html.low-power #dossier .ice-hex,
       html.low-power #dossier .ice-wave,
-      html.low-power #clearance .vault-stamp__ring {
+      html.low-power #clearance .vault-stamp__ring,
+      html.low-power .sigil-card__orbit {
         animation: none !important;
       }
 
@@ -1766,6 +2203,15 @@
       }
 
       html.low-power #dossier .ice-wave { opacity: 0.6; transform: scaleX(1); }
+
+      html.low-power .sigil-slot:hover,
+      html.low-power .sigil-slot:has(:focus-visible) {
+        transform: none;
+      }
+
+      html.low-power .sigil-card__scan {
+        animation: none !important;
+      }
 
       @media (pointer: coarse), (hover: none) {
         html {
@@ -1866,6 +2312,10 @@
         #clearance .clearance-level span.vault-bar--lit { transform: scaleX(1); opacity: 1; }
         .backdrop { filter: none; transform: none; }
         .ghost-title { transform: none; }
+        .sigil-slot:hover,
+        .sigil-slot:has(:focus-visible) { transform: none; }
+        .sigil-card__orbit,
+        .sigil-card__scan { animation: none; }
       }
     </style>
     <script is:inline>
@@ -2104,6 +2554,75 @@
             </div>
 
             <p class="vault-footer" aria-hidden="true">checksum valid · 2 issuers indexed · clearance on file</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="sector" data-section id="sigils">
+        <div class="slab-wrap sigil-wrap">
+          <p class="sector-label"><span>//</span> sigil rack</p>
+
+          <div class="sigil-rack">
+            <div class="sigil-head">
+              <span class="sigil-head__id">SIG-RACK-03 · badge mount</span>
+              <span class="sigil-head__meta">idx · {sigilCount} · scroll →</span>
+            </div>
+
+            <div class="sigil-rail" tabindex="0" aria-label="Certification badges">
+              {sigils.map((sigil, i) => {
+                const idx = String(i + 1).padStart(2, '0');
+                const body = (
+                  <>
+                    <span class="sigil-card__scan" aria-hidden="true"></span>
+                    <span class="sigil-card__stamp" aria-hidden="true">認証</span>
+                    <span class="sigil-card__ghost" aria-hidden="true">{idx}</span>
+                    <div class="sigil-card__top">
+                      <span class="sigil-card__idx">0x{idx}</span>
+                      <span class="sigil-card__code">{sigil.code}</span>
+                    </div>
+                    <div class="sigil-card__well">
+                      <span class="sigil-card__orbit" aria-hidden="true"></span>
+                      <Image
+                        src={sigil.art}
+                        alt=""
+                        class="sigil-card__art"
+                        widths={[160, 240, 320]}
+                        sizes="232px"
+                      />
+                    </div>
+                    <div class="sigil-card__meta">
+                      <p class="sigil-card__name">{sigil.name}</p>
+                      <span class="sigil-card__issuer">{sigil.issuer}</span>
+                    </div>
+                  </>
+                );
+
+                return (
+                  <div class="sigil-slot">
+                    <span class="sigil-card__hanger" aria-hidden="true"></span>
+                    {sigil.href ? (
+                      <a
+                        class="sigil-card"
+                        href={sigil.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`${sigil.code}: ${sigil.name}`}
+                      >
+                        {body}
+                      </a>
+                    ) : (
+                      <article class="sigil-card" aria-label={`${sigil.code}: ${sigil.name}`}>
+                        {body}
+                      </article>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p class="sigil-foot" aria-hidden="true">
+              {sigilCount} sigils mounted · rack open
+            </p>
           </div>
         </div>
       </section>
