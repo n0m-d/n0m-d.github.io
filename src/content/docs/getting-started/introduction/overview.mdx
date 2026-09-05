@@ -1,22 +1,9 @@
 ---
 title: Welcome
+description: Personal research ledger — CTF write-ups, lab sessions, and indexed findings.
+tableOfContents: false
 ---
 
-Personal notes and write-ups covering security research, CTF challenges, and lab exercises.
+import ArchiveWelcome from "~/components/user-components/ArchiveWelcome.astro";
 
-
-import Grid from "~/components/user-components/Grid.astro";
-import Card from "~/components/user-components/NewCard.astro";
-
-<Grid columns={2}>
-  <Card title="PentesterLab" icon="seti:puppet" iconColor="#7ec8f2" size='sm' glossy href="/pentesterlab/introduction/overview/">
-    CTF write-ups, guided exercises and more.
-  </Card>
-   <Card title="HTB Write-ups" icon="seti:webpack" iconColor="#9FEF00" size='sm' glossy href="/hack-the-box/introduction/overview/">
-    HTB Boxes and Challenges Write-ups.
-  </Card>
-  <Card title="CWEE Prep Track" icon="seti:haxe" iconColor="#b8d94a" size='sm' glossy href="/cwee-prep-track/introduction/overview/">
-    HTB Certified Web Exploitation Expert  Prep Track write-ups.
-  </Card>
-
-</Grid>
+<ArchiveWelcome />

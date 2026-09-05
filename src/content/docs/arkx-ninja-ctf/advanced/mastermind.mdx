@@ -1,0 +1,44 @@
+---
+title: "Mastermind"
+description: "PIN oracle with no rate limit"
+sidebar:
+  order: 6
+---
+
+| Field              | Detail                            |
+| ------------------ | --------------------------------- |
+| **Track**          | Advanced                          |
+| **Level**          | 4 - Mastermind                    |
+| **Classification** | Enumeration / missing rate limit  |
+
+## 1. Result
+
+The PIN terminal validates a 4-digit code and talks back to “authorized technicians.” Feedback on each guess made the space searchable. The source notes stop at generating the PIN list (`seq -w 0 9999`). No recovered PIN or flag is in that log.
+
+## 2. What the notes show
+
+The terminal is a 4-digit lock with validation feedback. That is an oracle: wrong guesses are not a silent failure, and nothing in the notes describes lockout or throttling.
+
+The enumeration space is:
+
+```text
+0000 … 9999
+```
+
+The recorded helper:
+
+```text
+seq -w 0 9999
+```
+
+That prints the ten thousand candidates. It is not a completed run against the terminal.
+
+## 3. Root cause
+
+Short secrets plus per-guess feedback plus no rate limit turn authentication into a search problem. A 4-digit PIN is 10⁴ tries. The model or the tool should never be the only thing deciding whether another guess is allowed.
+
+## 4. Notes
+
+- Rate-limit and lock out after failed attempts.
+- Do not return extra hinting on why a PIN failed if that hint shrinks the search.
+- Use a longer secret and check it in the backend, not in the chat.

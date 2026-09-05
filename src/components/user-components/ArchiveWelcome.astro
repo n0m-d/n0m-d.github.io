@@ -1,0 +1,379 @@
+---
+import { getCollection } from "astro:content";
+
+const allDocs = await getCollection("docs");
+
+function countEntries(prefix: string, introPrefix: string) {
+  return allDocs.filter(
+    (entry) => entry.id.startsWith(prefix) && !entry.id.startsWith(introPrefix)
+  ).length;
+}
+
+const volumes = [
+  {
+    idx: "01",
+    code: "PTL",
+    title: "PentesterLab",
+    href: "/pentesterlab/introduction/overview/",
+    blurb: "CTF write-ups, guided exercises, reconstructed chains.",
+    accent: "#7ec8f2",
+    count: countEntries("pentesterlab/", "pentesterlab/introduction/"),
+  },
+  {
+    idx: "02",
+    code: "HTB",
+    title: "HTB Write-ups",
+    href: "/hack-the-box/introduction/overview/",
+    blurb: "Boxes and challenges — paths, footholds, flag chains.",
+    accent: "#9fef00",
+    count: countEntries("hack-the-box/", "hack-the-box/introduction/"),
+  },
+  {
+    idx: "03",
+    code: "CWEE",
+    title: "CWEE Prep Track",
+    href: "/cwee-prep-track/introduction/overview/",
+    blurb: "Certified Web Exploitation Expert prep — boxes and labs.",
+    accent: "#b8d94a",
+    count: countEntries("cwee-prep-track/", "cwee-prep-track/introduction/"),
+  },
+  {
+    idx: "04",
+    code: "ARKX",
+    title: "ARKX Ninja CTF",
+    href: "/arkx-ninja-ctf/introduction/overview/",
+    blurb: "Beginner, Advanced, and Expert track write-ups from ARKX Ninja.",
+    accent: "#f0a05a",
+    count: countEntries("arkx-ninja-ctf/", "arkx-ninja-ctf/introduction/"),
+  },
+];
+
+const totalEntries = volumes.reduce((sum, volume) => sum + volume.count, 0);
+---
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap"
+  rel="stylesheet"
+/>
+
+<section class="catalog not-content" aria-label="Archive volumes">
+  <header class="catalog__head">
+    <p class="catalog__lead">Personal notes and write-ups covering security research, CTF challenges, and lab exercises.</p>
+  </header>
+
+  <nav class="catalog__grid" aria-label="Volumes">
+    {
+      volumes.map((volume, i) => (
+        <a
+          class={`sleeve sleeve--${volume.idx}`}
+          href={volume.href}
+          style={`--sleeve-accent: ${volume.accent}; --sleeve-i: ${i};`}
+        >
+          <span class="sleeve__edge" aria-hidden="true"></span>
+          <span class="sleeve__frame" aria-hidden="true">
+            <i></i><i></i><i></i><i></i>
+          </span>
+          <span class="sleeve__spine" aria-hidden="true"></span>
+          <span class="sleeve__idx" aria-hidden="true">{volume.idx}</span>
+          <span class="sleeve__code">{volume.code}</span>
+          <span class="sleeve__title">{volume.title}</span>
+          <span class="sleeve__blurb">{volume.blurb}</span>
+          <span class="sleeve__foot">
+            <span>
+              {String(volume.count).padStart(2, "0")}
+              {volume.count === 1 ? " file" : " files"}
+            </span>
+            <span class="sleeve__go">
+              open <i aria-hidden="true">↗</i>
+            </span>
+          </span>
+        </a>
+      ))
+    }
+  </nav>
+</section>
+
+<style>
+  .catalog {
+    --cat-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+    --cat-display: "Syne", var(--font-primary), system-ui, sans-serif;
+    margin-top: 0.15rem;
+  }
+
+  .catalog__head {
+    margin-bottom: 1.35rem;
+    padding-bottom: 1.15rem;
+    border-bottom: 1px solid var(--sl-color-hairline);
+  }
+
+  .catalog__kicker {
+    margin: 0 0 0.5rem;
+    font-size: var(--sl-text-body);
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--sl-color-white);
+  }
+
+  .catalog__lead {
+    margin: 0;
+    max-width: none;
+    font-size: var(--sl-text-body);
+    font-weight: 400;
+    letter-spacing: normal;
+    line-height: var(--sl-line-height);
+    color: var(--sl-color-gray-2);
+  }
+
+  .catalog__meta {
+    margin: 0.7rem 0 0;
+    font-size: var(--sl-text-sm, 0.875rem);
+    letter-spacing: normal;
+    text-transform: none;
+    color: var(--sl-color-gray-3);
+  }
+
+  .catalog__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+  }
+
+  .sleeve {
+    --sleeve-cut: 16px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 13.5rem;
+    padding: 1.15rem 1.15rem 1rem 1.35rem;
+    overflow: hidden;
+    text-decoration: none;
+    color: #f4f7f5;
+    background: transparent;
+    border: none;
+    clip-path: polygon(
+      var(--sleeve-cut) 0,
+      calc(100% - var(--sleeve-cut)) 0,
+      100% var(--sleeve-cut),
+      100% calc(100% - var(--sleeve-cut)),
+      calc(100% - var(--sleeve-cut)) 100%,
+      var(--sleeve-cut) 100%,
+      0 calc(100% - var(--sleeve-cut)),
+      0 var(--sleeve-cut)
+    );
+    transform: translate3d(0, 0, 0);
+    transition:
+      transform 0.28s ease,
+      filter 0.28s ease;
+    animation: sleeve-in 0.45s ease both;
+    animation-delay: calc(var(--sleeve-i) * 60ms);
+  }
+
+  .sleeve__edge {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        ellipse 90% 70% at 100% 0%,
+        color-mix(in srgb, var(--sleeve-accent) 22%, transparent),
+        transparent 58%
+      ),
+      linear-gradient(165deg, #14181c 0%, #0b0f13 62%, #101418 100%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sleeve-accent) 28%, #2a3036);
+  }
+
+  .sleeve__frame {
+    position: absolute;
+    inset: 0.55rem 0.6rem;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .sleeve__frame i {
+    position: absolute;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-color: color-mix(in srgb, var(--sleeve-accent) 70%, #fff);
+    border-style: solid;
+    opacity: 0.75;
+  }
+
+  .sleeve__frame i:nth-child(1) { top: 0; left: 0; border-width: 1px 0 0 1px; }
+  .sleeve__frame i:nth-child(2) { top: 0; right: 0; border-width: 1px 1px 0 0; }
+  .sleeve__frame i:nth-child(3) { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+  .sleeve__frame i:nth-child(4) { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
+
+  .sleeve__spine {
+    position: absolute;
+    left: 0;
+    top: var(--sleeve-cut);
+    bottom: var(--sleeve-cut);
+    width: 7px;
+    background: var(--sleeve-accent);
+    opacity: 0.85;
+    z-index: 1;
+  }
+
+  .sleeve__idx {
+    position: absolute;
+    right: 0.55rem;
+    top: 0.35rem;
+    font-family: var(--cat-display);
+    font-size: 4.6rem;
+    font-weight: 800;
+    line-height: 0.8;
+    letter-spacing: -0.08em;
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in srgb, var(--sleeve-accent) 38%, transparent);
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .sleeve__code {
+    position: relative;
+    z-index: 1;
+    align-self: flex-start;
+    margin-bottom: auto;
+    padding: 0.18rem 0.45rem;
+    border: 1px solid color-mix(in srgb, var(--sleeve-accent) 45%, transparent);
+    font-family: var(--cat-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--sleeve-accent);
+  }
+
+  .sleeve__title {
+    position: relative;
+    z-index: 1;
+    margin-top: 1.6rem;
+    font-family: var(--cat-display);
+    font-size: clamp(1.2rem, 2.4vw, 1.45rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: #f4f7f5;
+  }
+
+  .sleeve__blurb {
+    position: relative;
+    z-index: 1;
+    margin-top: 0.4rem;
+    max-width: 28ch;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: rgba(244, 247, 245, 0.62);
+  }
+
+  .sleeve__foot {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1.05rem;
+    font-family: var(--cat-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(244, 247, 245, 0.45);
+  }
+
+  .sleeve__go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--sleeve-accent);
+  }
+
+  .sleeve__go i {
+    font-style: normal;
+    transition: transform 0.25s ease;
+  }
+
+  @media (min-width: 720px) {
+    .catalog__grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding-bottom: 1.1rem;
+    }
+
+    .sleeve--02,
+    .sleeve--04 {
+      transform: translate3d(0, 1.1rem, 0);
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .sleeve:hover,
+    .sleeve:focus-visible {
+      filter: brightness(1.06);
+      transform: translate3d(0, -4px, 0);
+      outline: none;
+    }
+
+    .sleeve:hover .sleeve__frame i,
+    .sleeve:focus-visible .sleeve__frame i {
+      opacity: 1;
+    }
+
+    .sleeve:hover .sleeve__go i,
+    .sleeve:focus-visible .sleeve__go i {
+      transform: translate(3px, -3px);
+    }
+
+    .sleeve:hover .sleeve__idx,
+    .sleeve:focus-visible .sleeve__idx {
+      color: color-mix(in srgb, var(--sleeve-accent) 12%, transparent);
+      -webkit-text-stroke-color: var(--sleeve-accent);
+    }
+  }
+
+  @media (min-width: 720px) and (hover: hover) and (pointer: fine) {
+    .sleeve--02:hover,
+    .sleeve--04:hover,
+    .sleeve--02:focus-visible,
+    .sleeve--04:focus-visible {
+      transform: translate3d(0, 0.55rem, 0);
+    }
+  }
+
+  @keyframes sleeve-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sleeve {
+      animation: none;
+    }
+
+    .sleeve,
+    .sleeve__go i {
+      transition: none;
+    }
+
+    .sleeve:hover,
+    .sleeve:focus-visible,
+    .sleeve--02,
+    .sleeve--04,
+    .sleeve--02:hover,
+    .sleeve--04:hover {
+      transform: none;
+    }
+  }
+
+  :global(html.low-power) .sleeve {
+    animation: none;
+  }
+
+  :global(html.low-power) .sleeve--02,
+  :global(html.low-power) .sleeve--04 {
+    transform: none;
+  }
+</style>

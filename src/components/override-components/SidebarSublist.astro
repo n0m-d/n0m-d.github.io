@@ -38,6 +38,7 @@ const { sublist, nested } = Astro.props;
         ) : (
           <details
             open={
+              plainLabel(entry.label) === "Getting Started" ||
               flattenSidebar(entry.entries).some((i) => i.isCurrent) ||
               !entry.collapsed
             }
@@ -158,7 +159,7 @@ const { sublist, nested } = Astro.props;
       flex-shrink: 0;
     }
     .top-level > li > details > summary .caret {
-      display: none;
+      display: block;
     }
     :global([dir="rtl"]) .caret {
       transform: rotateZ(180deg);
@@ -218,43 +219,3 @@ const { sublist, nested } = Astro.props;
   }
 </style>
 
-<script>
-  function initializeSidebar(): void {
-    const topLevelItems = document.querySelectorAll(
-      ".sidebar-content .top-level > li"
-    ) as NodeListOf<HTMLLIElement>;
-
-    topLevelItems.forEach((item: HTMLLIElement) => {
-      const detailsElement = item.querySelector(
-        "details"
-      ) as HTMLDetailsElement;
-
-      if (detailsElement) {
-        // Keep details always open
-        detailsElement.open = true;
-
-        // Prevent closing on click
-        const summaryElement = detailsElement.querySelector("summary");
-        if (summaryElement) {
-          summaryElement.addEventListener("click", (e: Event) => {
-            e.preventDefault();
-          });
-        }
-
-        // Prevent closing via toggle event
-        detailsElement.addEventListener("toggle", () => {
-          if (!detailsElement.open) {
-            detailsElement.open = true;
-          }
-        });
-      }
-    });
-  }
-
-  // Initialize when DOM is ready
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeSidebar);
-  } else {
-    initializeSidebar();
-  }
-</script>

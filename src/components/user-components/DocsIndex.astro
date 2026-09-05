@@ -6,9 +6,10 @@ interface Props {
   contentPrefix: string;
   introPrefix: string;
   accent: string;
+  categoryOrder?: string[];
 }
 
-const { rootId, contentPrefix, introPrefix, accent } = Astro.props;
+const { rootId, contentPrefix, introPrefix, accent, categoryOrder = [] } = Astro.props;
 
 const allDocs = await getCollection("docs");
 const entries = allDocs.filter(
@@ -27,18 +28,28 @@ function formatCategory(name: string) {
     .join(" ");
 }
 
+function categoryRank(name: string) {
+  if (name === "general") return -1;
+  const index = categoryOrder.indexOf(name);
+  return index === -1 ? categoryOrder.length : index;
+}
+
+function compareCategories(a: string, b: string) {
+  const rank = categoryRank(a) - categoryRank(b);
+  return rank !== 0 ? rank : a.localeCompare(b);
+}
+
 const flat = entries
   .map((entry) => ({
     entry,
     category: getCategory(entry.id),
   }))
-  .sort((a, b) => a.entry.data.title.localeCompare(b.entry.data.title));
+  .sort((a, b) => {
+    const rank = compareCategories(a.category, b.category);
+    return rank !== 0 ? rank : a.entry.data.title.localeCompare(b.entry.data.title);
+  });
 
-const categories = [...new Set(flat.map((item) => item.category))].sort((a, b) => {
-  if (a === "general") return -1;
-  if (b === "general") return 1;
-  return a.localeCompare(b);
-});
+const categories = [...new Set(flat.map((item) => item.category))].sort(compareCategories);
 
 const categoryCounts = Object.fromEntries(
   categories.map((cat) => [cat, flat.filter((item) => item.category === cat).length])

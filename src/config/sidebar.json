@@ -12,7 +12,39 @@
       ]
     },
     {
+      "label": "ARKX Ninja CTF",
+      "collapsed": true,
+      "items": [
+        {
+          "label": "[seti:json] Overview",
+          "slug": "arkx-ninja-ctf/introduction/overview"
+        },
+        {
+          "label": "[seti:notebook] Beginner",
+          "collapsed": true,
+          "autogenerate": {
+            "directory": "arkx-ninja-ctf/beginner"
+          }
+        },
+        {
+          "label": "[seti:python] Advanced",
+          "collapsed": true,
+          "autogenerate": {
+            "directory": "arkx-ninja-ctf/advanced"
+          }
+        },
+        {
+          "label": "[seti:salesforce] Expert",
+          "collapsed": true,
+          "autogenerate": {
+            "directory": "arkx-ninja-ctf/expert"
+          }
+        }
+      ]
+    },
+    {
       "label": "PentesterLab",
+      "collapsed": true,
       "items": [
         {
           "label": "[seti:json] Overview",
@@ -20,12 +52,14 @@
         },
         {
           "label": "[seti:odata] Capture The Flag",
+          "collapsed": true,
           "autogenerate": {
             "directory": "pentesterlab/capture-the-flag"
           }
         },
         {
           "label": "[seti:bower] Brown",
+          "collapsed": true,
           "autogenerate": {
             "directory": "pentesterlab/brown"
           }
@@ -34,6 +68,7 @@
     },
     {
       "label": "Hack The Box",
+      "collapsed": true,
       "items": [
         {
           "label": "[seti:json] Overview",
@@ -41,6 +76,7 @@
         },
         {
           "label": "[seti:jinja] Challenges",
+          "collapsed": true,
           "autogenerate": {
             "directory": "hack-the-box/challenges"
           }
@@ -49,6 +85,7 @@
     },
     {
       "label": "CWEE Prep Track",
+      "collapsed": true,
       "items": [
         {
           "label": "[seti:json] Overview",
@@ -56,12 +93,14 @@
         },
         {
           "label": "[seti:sbt] Boxes",
+          "collapsed": true,
           "autogenerate": {
             "directory": "cwee-prep-track/boxes"
           }
         },
         {
           "label": "[seti:jinja] Challenges",
+          "collapsed": true,
           "autogenerate": {
             "directory": "cwee-prep-track/challenges"
           }
