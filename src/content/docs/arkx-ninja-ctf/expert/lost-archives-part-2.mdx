@@ -15,6 +15,18 @@ sidebar:
 
 **Flag obtained:** `flag-19165f`
 
+**Payload (reown):**
+
+```text
+copy_file({ source: '../flag.txt', destination: 'backup_oldfile.txt' })
+```
+
+**Winning payload:**
+
+```text
+read_file({ file_name: 'backup_oldfile.txt' })
+```
+
 The vault says you may only read files owned by `user`. `flag.txt` in the parent directory is owned by `admin`. Direct reads fail, including path traversal and role-play as `admin` or `unknown`.
 
 `copy_file` does not check whether you may read the source. It copies `../flag.txt` to `backup_oldfile.txt` and marks the copy as owned by `user`. Reading the new name returns the flag.

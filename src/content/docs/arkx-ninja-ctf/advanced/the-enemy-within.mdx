@@ -15,6 +15,12 @@ sidebar:
 
 **Flag obtained:** `flag-45875b`
 
+**Winning payload:**
+
+```text
+fetch_url({ url: "http://0/flag.txt" })
+```
+
 The Content Retriever fetches a URL the caller supplies and summarizes the body. The schema says **external** URL. The implementation will request whatever host it can route to, including loopback. `http://127.0.0.1` and `http://0.0.0.0` served an internal welcome page. `http://0/flag.txt` returned the flag.
 
 The agent is an HTTP proxy with the operator's words as the destination.

@@ -15,6 +15,12 @@ sidebar:
 
 **Flag obtained:** `flag-3a1d13`
 
+**Winning payload:**
+
+```text
+read_file({ file_name: "%2e%2e%2ffla%67.txt" })
+```
+
 High-security mode inspects every file request for restricted patterns. The filter blocks the literal strings `../` and `flag.txt` (including some case variants). It does that **before** decoding.
 
 `list_files({ path: "../" })` still shows `flag.txt` next to `data/`. Direct reads of `flag.txt`, `/flag.txt`, mixed case, fullwidth Unicode, backslashes, and null bytes fail or crash. The working name was URL-encoded traversal plus a encoded letter in `flag`:

@@ -15,6 +15,18 @@ sidebar:
 
 **Flag obtained:** `flag-01ae1c`
 
+**Payload (list):**
+
+```text
+check 127.0.0.1 && ls ./
+```
+
+**Winning payload:**
+
+```text
+check 127.0.0.1 && cat ./flag.txt
+```
+
 The diagnostic agent pings a caller-supplied host. That host string is interpolated into a shell command. `;whoami` and `&& pwd` were aborted with a `LIST/CAT ONLY` corruption message. `&& ls ./` and `&& cat ./flag.txt` were not. The ping ran, then the injected command ran in the same shell. `ls` showed `flag.txt`. `cat` printed the flag after the ping statistics.
 
 The “hardening” was a denylist of command names, not a parser, and not an argv boundary.
