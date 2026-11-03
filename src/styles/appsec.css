@@ -1,0 +1,206 @@
+/*
+ * AppSec journal tokens — shared by the standalone /appsec/ landing page and
+ * Starlight-rendered posts (via .appsec-scope). Palette and type follow the
+ * home page ("void"): Syne display, DM Sans body, JetBrains Mono details.
+ */
+
+.appsec-scope {
+  --as-bg: #060d12;
+  --as-bg-deep: #03080c;
+  --as-panel: rgba(12, 22, 30, 0.72);
+  --as-line: rgba(93, 255, 176, 0.12);
+  --as-line-strong: rgba(93, 255, 176, 0.24);
+  --as-text: #f2fff6;
+  --as-muted: #a8c8b4;
+  --as-subtle: #6a9a7a;
+  --as-accent: #5dffb0;
+  --as-accent-rgb: 93, 255, 176;
+  --as-cyan: #3ef0e8;
+  --as-mark: #ff79c6;
+  --as-add: #5dffb0;
+  --as-del: #ff6b8b;
+  --as-display: "Syne", system-ui, sans-serif;
+  --as-sans: "DM Sans", system-ui, sans-serif;
+  --as-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+:root[data-theme="light"] .appsec-scope {
+  --as-bg: #f7faf8;
+  --as-bg-deep: #eef3f0;
+  --as-panel: #ffffff;
+  --as-line: rgba(6, 40, 24, 0.12);
+  --as-line-strong: rgba(6, 40, 24, 0.24);
+  --as-text: #0b1a12;
+  --as-muted: #3d5a49;
+  --as-subtle: #6b8577;
+  --as-accent: #0b8a52;
+  --as-accent-rgb: 11, 138, 82;
+  --as-cyan: #0a8f8a;
+  --as-mark: #c0267f;
+  --as-add: #0b8a52;
+  --as-del: #c22a4f;
+}
+
+/* Severity scale: any element with data-severity gets --sev. */
+[data-severity="critical"] { --sev: #ff4d6d; }
+[data-severity="high"] { --sev: #ff9f5a; }
+[data-severity="medium"] { --sev: #ffcc55; }
+[data-severity="low"] { --sev: #3ef0e8; }
+[data-severity="info"] { --sev: #a8c8b4; }
+
+/* Kicker: small mono uppercase label (type, severity) used across AppSec. */
+.as-kicker {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--as-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--as-mark);
+}
+
+.as-kicker [data-severity] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--sev);
+}
+
+.as-kicker [data-severity]::before {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--sev);
+  box-shadow: 0 0 10px var(--sev);
+}
+
+/* ── Starlight post pages ─────────────────────────────────────────── */
+
+.appsec-scope[data-section="appsec"] {
+  --sl-color-accent-low: rgba(var(--as-accent-rgb), 0.12);
+  --sl-color-accent: var(--as-accent);
+  --sl-color-accent-high: var(--as-accent);
+  --sl-color-bg: var(--as-bg);
+  --sl-color-bg-nav: var(--as-bg);
+  --sl-color-hairline: var(--as-line);
+  --sl-color-hairline-light: var(--as-line);
+  --sl-font: var(--as-sans);
+  background:
+    radial-gradient(ellipse 70% 40% at 50% -10%, rgba(var(--as-accent-rgb), 0.07), transparent 70%),
+    var(--as-bg);
+}
+
+.appsec-scope .sl-markdown-content {
+  counter-reset: as-section;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  color: var(--as-muted);
+}
+
+.appsec-scope .sl-markdown-content :is(strong, b) {
+  color: var(--as-text);
+}
+
+/* Numbered section headings: "01 —" above the title. */
+.appsec-scope .sl-markdown-content .sl-heading-wrapper.level-h2 {
+  counter-increment: as-section;
+  margin-top: 3.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--as-line);
+}
+
+.appsec-scope .sl-markdown-content > .sl-heading-wrapper.level-h2:first-child {
+  margin-top: 0;
+}
+
+.appsec-scope .sl-markdown-content .level-h2 h2 {
+  font-family: var(--as-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--as-text);
+}
+
+.appsec-scope .sl-markdown-content .level-h2 h2::before {
+  content: counter(as-section, decimal-leading-zero) " —";
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--as-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--as-accent);
+}
+
+.appsec-scope .sl-markdown-content .level-h3 h3 {
+  font-family: var(--as-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--as-text);
+}
+
+.appsec-scope .sl-markdown-content :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.3rem;
+  background: rgba(var(--as-accent-rgb), 0.08);
+  color: var(--as-text);
+  font-size: 0.88em;
+}
+
+.appsec-scope .sl-markdown-content a:not(.sl-anchor-link) {
+  color: var(--as-text);
+  text-decoration-color: var(--as-accent);
+  text-underline-offset: 0.2em;
+}
+
+/* Pull-quote blockquotes. */
+.appsec-scope .sl-markdown-content blockquote {
+  margin-block: 2rem;
+  padding: 0 0 0 1.5rem;
+  border-left: 2px solid var(--as-accent);
+  background: none;
+  font-family: var(--as-display);
+  font-size: 1.35rem;
+  line-height: 1.4;
+  color: var(--as-text);
+}
+
+.appsec-scope .sl-markdown-content .sl-anchor-link {
+  color: var(--as-subtle);
+  opacity: 0.5;
+}
+
+.appsec-scope .sl-markdown-content .sl-anchor-link:hover {
+  color: var(--as-accent);
+  opacity: 1;
+}
+
+/* Code frames in the journal palette (Expressive Code variables). */
+.appsec-scope .expressive-code {
+  --ec-codeBg: var(--as-bg-deep);
+  --ec-brdCol: var(--as-line);
+  --ec-brdRad: 0.75rem;
+  --ec-frm-edBg: var(--as-bg-deep);
+  --ec-frm-edTabBarBg: var(--as-bg-deep);
+  --ec-frm-edTabBarBrdCol: var(--as-line);
+  --ec-frm-edTabBarBrdBtmCol: var(--as-line);
+  --ec-frm-edActTabBg: var(--as-bg-deep);
+  --ec-frm-edActTabBrdCol: transparent;
+  --ec-frm-edActTabFg: var(--as-muted);
+  --ec-frm-edActTabIndTopCol: var(--as-accent);
+  --ec-frm-edActTabIndBtmCol: transparent;
+  --ec-frm-trmBg: var(--as-bg-deep);
+  --ec-frm-trmTtbBg: var(--as-bg-deep);
+  --ec-frm-frameBoxShdCssVal: none;
+  margin-block: 1.75rem;
+}
+
+.appsec-scope .expressive-code .frame .header {
+  font-family: var(--as-mono);
+  font-size: 0.75rem;
+}

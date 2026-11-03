@@ -218,16 +218,9 @@ const searchId = `${rootId}-search`;
 </div>
 
 <script>
-  import { bootDocsIndex } from "../../scripts/docs-index.ts";
-
-  function bootAllDocsIndexes(): void {
-    document.querySelectorAll<HTMLElement>("[data-docs-index]").forEach((root) => {
-      if (root.id) bootDocsIndex(root.id, { defaultPerPage: 10 });
-    });
-  }
+  import { bootAllDocsIndexes } from "../../scripts/docs-index.ts";
 
   bootAllDocsIndexes();
-  document.addEventListener("astro:page-load", bootAllDocsIndexes);
 </script>
 
 <style>

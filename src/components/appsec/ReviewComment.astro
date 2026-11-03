@@ -1,0 +1,105 @@
+---
+/**
+ * Inline PR-style review comment for AppSec posts.
+ *
+ *   <ReviewComment file="src/routes/search.ts" line={42} severity="high" status="blocking">
+ *     `q` flows straight into the SQL string — use a bound parameter.
+ *   </ReviewComment>
+ */
+import type { Severity } from "@/lib/appsec-constants";
+
+interface Props {
+  file?: string;
+  line?: number | string;
+  severity?: Severity;
+  status?: "blocking" | "suggestion" | "nit" | "question" | "resolved";
+  author?: string;
+}
+
+const { file, line, severity, status = "suggestion", author = "v0iid" } = Astro.props;
+---
+
+<aside class="rc not-content" data-severity={severity} data-status={status}>
+  <p class="rc__head">
+    <span class="rc__who">{author}</span>
+    <span class="rc__status">{status}</span>
+    {severity && <span class="rc__sev">{severity}</span>}
+    {file && (
+      <code class="rc__loc">{file}{line !== undefined && <span>:{line}</span>}</code>
+    )}
+  </p>
+  <div class="rc__body"><slot /></div>
+</aside>
+
+<style>
+  .rc {
+    --rc: var(--sev, var(--as-accent));
+    position: relative;
+    margin: 2rem 0;
+    padding: 1.1rem 1.25rem 1.1rem 1.5rem;
+    border-radius: 0 0.75rem 0.75rem 0;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--rc) 9%, transparent), transparent 85%);
+  }
+
+  .rc::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--rc);
+    box-shadow: 0 0 12px var(--rc);
+  }
+
+  .rc[data-status="resolved"] {
+    --rc: var(--as-add);
+  }
+
+  .rc__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.9rem;
+    margin: 0 0 0.6rem;
+    font-family: var(--as-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--as-subtle);
+  }
+
+  .rc__who {
+    color: var(--as-text);
+  }
+
+  .rc__status,
+  .rc__sev {
+    color: var(--rc);
+  }
+
+  .rc__loc {
+    margin-left: auto;
+    font-family: var(--as-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--as-cyan);
+  }
+
+  .rc__body {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--as-text);
+  }
+
+  .rc__body :global(> :first-child) { margin-top: 0; }
+  .rc__body :global(> :last-child) { margin-bottom: 0; }
+  .rc__body :global(* + *) { margin-top: 0.6rem; }
+  .rc__body :global(code) {
+    padding: 0.1em 0.35em;
+    border-radius: 0.3rem;
+    background: rgba(var(--as-accent-rgb), 0.08);
+    font-size: 0.88em;
+  }
+</style>

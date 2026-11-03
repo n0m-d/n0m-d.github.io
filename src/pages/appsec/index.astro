@@ -1,0 +1,630 @@
+---
+import "../../styles/appsec.css";
+import AppSecBar from "../../components/appsec/AppSecBar.astro";
+import {
+  KIND_LABEL,
+  KIND_META,
+  KINDS,
+  cweId,
+  formatDate,
+  getAppSecPosts,
+  getKind,
+  readingMinutes,
+  type AppSecPost,
+} from "../../lib/appsec";
+
+const all = (await getAppSecPosts()).map((entry, i, list) => ({
+  entry,
+  kind: getKind(entry),
+  meta: entry.data.appsec,
+  // Chronological issue number: oldest post is No. 001.
+  number: String(list.length - i).padStart(3, "0"),
+}));
+
+// The newest post is highlighted as `featured`, but the list below shows
+// every post (featured included) so each category is filterable.
+const [featured] = all;
+const kindCounts = Object.fromEntries(
+  KINDS.map((k) => [k, all.filter((p) => p.kind === k).length])
+) as Record<(typeof KINDS)[number], number>;
+
+const updated = featured?.meta?.date;
+const href = (entry: AppSecPost) => `/${entry.id}/`;
+const shortDate = (d?: Date) =>
+  d ? d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>AppSec Journal — v0iid</title>
+    <meta
+      name="description"
+      content="Secure code review write-ups and essays on application security by v0iid."
+    />
+  </head>
+  <body class="appsec-scope">
+    <AppSecBar />
+
+    <main class="wrap">
+      <header class="mast">
+        <div class="mast__rule">
+          <span>Vol. 04 — Application Security</span>
+          <span>
+            {all.length} {all.length === 1 ? "entry" : "entries"}
+            {updated && <> · updated {formatDate(updated)}</>}
+          </span>
+        </div>
+        <h1 class="mast__title">
+          AppSec<span class="mast__title-mark">.</span>
+        </h1>
+        <p class="mast__deck">
+          Secure code review write-ups and essays on application security. Where untrusted
+          input goes, why it gets there, and the patch that stops it.
+        </p>
+      </header>
+
+      {featured ? (
+        <a class="feature" href={href(featured.entry)} data-severity={featured.meta?.severity}>
+          <div class="feature__copy">
+            <p class="as-kicker">
+              <span>Latest · {KIND_LABEL[featured.kind]}</span>
+              {featured.meta?.severity && (
+                <span data-severity={featured.meta.severity}>{featured.meta.severity}</span>
+              )}
+            </p>
+            <h2 class="feature__title">{featured.entry.data.title}</h2>
+            {featured.entry.data.description && (
+              <p class="feature__lede">{featured.entry.data.description}</p>
+            )}
+            <p class="feature__meta">
+              {featured.meta?.date && <time>{formatDate(featured.meta.date)}</time>}
+              <span>{readingMinutes(featured.entry.body)} min read</span>
+              {featured.meta?.target && <span>{featured.meta.target}</span>}
+              {(featured.meta?.cwe ?? []).map((c) => <span class="cwe">CWE-{cweId(c)}</span>)}
+            </p>
+            <span class="feature__cta">
+              Read the {KIND_META[featured.kind].noun} <i aria-hidden="true">→</i>
+            </span>
+          </div>
+          <div class="feature__art" aria-hidden="true">
+            <span class="feature__no">No.</span>
+            <span class="feature__num">{featured.number}</span>
+          </div>
+        </a>
+      ) : (
+        <section class="feature feature--empty">
+          <div class="feature__copy">
+            <p class="as-kicker"><span>First issue</span></p>
+            <h2 class="feature__title">In review.</h2>
+            <p class="feature__lede">The first write-up is on its way. Check back soon.</p>
+          </div>
+          <div class="feature__art" aria-hidden="true">
+            <span class="feature__no">No.</span>
+            <span class="feature__num">001</span>
+          </div>
+        </section>
+      )}
+
+      {all.length > 0 && (
+        <section class="latest" id="appsec-latest" data-docs-index aria-labelledby="latest-title">
+          <div class="latest__head">
+            <h2 id="latest-title">All posts</h2>
+            <div class="latest__filters" data-index-filters role="group" aria-label="Filter by type">
+              <button type="button" class="is-active" data-filter="all">
+                All <sup data-index-counter>{all.length}</sup>
+              </button>
+              {KINDS.filter((k) => kindCounts[k] > 0).map((k) => (
+                <button type="button" data-filter={k}>
+                  {KIND_META[k].tab} <sup>{kindCounts[k]}</sup>
+                </button>
+              ))}
+            </div>
+            <input
+              class="latest__search"
+              data-index-search
+              type="search"
+              placeholder="Search…  /"
+              aria-label="Search posts"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </div>
+
+          <ol class="latest__list" data-index-list>
+            {all.map(({ entry, kind, meta, number }) => (
+              <li
+                class="index-item"
+                data-category={kind}
+                data-search={[
+                  entry.data.title,
+                  entry.data.description,
+                  kind,
+                  meta?.target,
+                  meta?.language,
+                  meta?.severity,
+                  ...(meta?.tags ?? []),
+                  ...(meta?.cwe ?? []).map((c) => `cwe-${cweId(c)}`),
+                ]
+                  .filter(Boolean)
+                  .join(" ")
+                  .toLowerCase()}
+              >
+                <a class="item" href={href(entry)}>
+                  <span class="item__date">
+                    <b>{shortDate(meta?.date)}</b>
+                    <span>{meta?.date?.getFullYear()}</span>
+                  </span>
+                  <span class="item__main">
+                    <span class="as-kicker">
+                      <span>No. {number} · {KIND_LABEL[kind]}</span>
+                      {meta?.severity && <span data-severity={meta.severity}>{meta.severity}</span>}
+                    </span>
+                    <span class="item__title">{entry.data.title}</span>
+                    {entry.data.description && (
+                      <span class="item__desc">{entry.data.description}</span>
+                    )}
+                  </span>
+                  <span class="item__side">
+                    <span>{readingMinutes(entry.body)} min</span>
+                    <i aria-hidden="true">→</i>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+
+          <p class="latest__empty" data-index-empty hidden>Nothing matches that search.</p>
+
+          <nav class="latest__pager" data-index-pagination aria-label="Pagination">
+            <button type="button" data-index-prev-page disabled>← Newer</button>
+            <span data-index-page-indicator></span>
+            <button type="button" data-index-next-page>Older →</button>
+          </nav>
+        </section>
+      )}
+    </main>
+
+    <footer class="foot">
+      <span class="foot__mark">v0iid</span>
+      <span>AppSec Journal · © {new Date().getFullYear()}</span>
+      <a href="/">← back to the void</a>
+    </footer>
+
+    <script>
+      import { bootAllDocsIndexes } from "../../scripts/docs-index.ts";
+
+      bootAllDocsIndexes();
+    </script>
+
+    <style>
+      :global(*),
+      :global(*::before),
+      :global(*::after) {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(ellipse 55% 35% at 15% 0%, rgba(var(--as-accent-rgb), 0.08), transparent 70%),
+          radial-gradient(ellipse 40% 30% at 95% 30%, rgba(62, 240, 232, 0.05), transparent 70%),
+          var(--as-bg);
+        color: var(--as-text);
+        font-family: var(--as-sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .wrap {
+        max-width: 76rem;
+        margin: 0 auto;
+        padding: 0 1.5rem 5rem;
+      }
+
+      /* ── Masthead ── */
+      .mast {
+        padding: 3rem 0 3.5rem;
+      }
+
+      .mast__rule {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid var(--as-line-strong);
+        font-family: var(--as-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--as-subtle);
+      }
+
+      .mast__title {
+        margin: 1.5rem 0 0;
+        font-family: var(--as-display);
+        font-size: clamp(3.25rem, 12.5vw, 10.5rem);
+        font-weight: 800;
+        line-height: 0.82;
+        letter-spacing: -0.06em;
+        color: var(--as-text);
+      }
+
+      .mast__title-mark {
+        color: var(--as-accent);
+        text-shadow: 0 0 40px rgba(var(--as-accent-rgb), 0.5);
+      }
+
+      .mast__deck {
+        max-width: 38rem;
+        margin: 2rem 0 0;
+        font-size: clamp(1.05rem, 1.9vw, 1.25rem);
+        line-height: 1.6;
+        color: var(--as-muted);
+      }
+
+      /* ── Featured ── */
+      .feature {
+        display: grid;
+        gap: 2rem;
+        padding: 2.5rem 0;
+        border-top: 1px solid var(--as-line-strong);
+        border-bottom: 1px solid var(--as-line-strong);
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .feature__title {
+        margin: 1rem 0 0;
+        font-family: var(--as-display);
+        font-size: clamp(1.9rem, 3.8vw, 2.9rem);
+        font-weight: 700;
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+        text-wrap: balance;
+        transition: color 0.2s ease;
+      }
+
+      a.feature:hover .feature__title {
+        color: var(--as-accent);
+      }
+
+      .feature__lede {
+        max-width: 36rem;
+        margin: 1.1rem 0 0;
+        font-size: 1.1rem;
+        line-height: 1.6;
+        color: var(--as-muted);
+      }
+
+      .feature__meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 1.25rem;
+        margin: 1.5rem 0 0;
+        font-family: var(--as-mono);
+        font-size: 0.75rem;
+        color: var(--as-subtle);
+      }
+
+      .cwe {
+        color: var(--as-cyan);
+      }
+
+      .feature__cta {
+        display: inline-flex;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        padding-bottom: 0.2rem;
+        border-bottom: 1px solid var(--as-accent);
+        font-family: var(--as-mono);
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--as-accent);
+      }
+
+      .feature__cta i {
+        font-style: normal;
+        transition: transform 0.2s ease;
+      }
+
+      a.feature:hover .feature__cta i {
+        transform: translateX(4px);
+      }
+
+      .feature__art {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: flex-end;
+        min-height: 10rem;
+        padding: 1.5rem;
+        border-radius: 1.25rem;
+        background:
+          radial-gradient(circle at 70% 30%, color-mix(in srgb, var(--sev, var(--as-accent)) 22%, transparent), transparent 65%),
+          var(--as-panel);
+        border: 1px solid var(--as-line);
+        overflow: hidden;
+      }
+
+      .feature__no {
+        font-family: var(--as-mono);
+        font-size: 0.75rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--as-subtle);
+      }
+
+      .feature__num {
+        font-family: var(--as-display);
+        font-size: clamp(4rem, 7.5vw, 6.5rem);
+        font-weight: 800;
+        line-height: 0.85;
+        letter-spacing: -0.06em;
+        color: transparent;
+        -webkit-text-stroke: 1.5px color-mix(in srgb, var(--sev, var(--as-accent)) 80%, var(--as-text));
+      }
+
+      /* ── Latest list ── */
+      .latest {
+        padding-top: 3.5rem;
+      }
+
+      .latest__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 1rem 2rem;
+        padding-bottom: 1rem;
+      }
+
+      .latest__head h2 {
+        margin: 0;
+        font-family: var(--as-display);
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .latest__filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+      }
+
+      .latest__filters button,
+      .latest__pager button {
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--as-subtle);
+        font-family: var(--as-sans);
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: color 0.15s ease;
+      }
+
+      .latest__filters sup {
+        margin-left: 0.15rem;
+        font-family: var(--as-mono);
+        font-size: 0.65rem;
+      }
+
+      .latest__filters button:hover,
+      .latest__filters button.is-active {
+        color: var(--as-text);
+      }
+
+      .latest__filters button.is-active {
+        text-decoration: underline;
+        text-decoration-color: var(--as-accent);
+        text-decoration-thickness: 2px;
+        text-underline-offset: 0.45em;
+      }
+
+      .latest__search {
+        width: min(100%, 14rem);
+        margin-left: auto;
+        padding: 0.35rem 0;
+        border: none;
+        border-bottom: 1px solid var(--as-line-strong);
+        background: transparent;
+        color: var(--as-text);
+        font-family: var(--as-mono);
+        font-size: 0.8rem;
+      }
+
+      .latest__search:focus {
+        outline: none;
+        border-bottom-color: var(--as-accent);
+      }
+
+      .latest__list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--as-line-strong);
+      }
+
+      .index-item {
+        border-bottom: 1px solid var(--as-line);
+      }
+
+      .index-item[hidden] {
+        display: none;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+        gap: 1.5rem;
+        padding: 1.75rem 0;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .item__date {
+        display: grid;
+        align-content: start;
+        gap: 0.2rem;
+        font-family: var(--as-mono);
+        font-size: 0.75rem;
+        color: var(--as-subtle);
+      }
+
+      .item__date b {
+        font-weight: 500;
+        color: var(--as-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .item__main {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .item__title {
+        font-family: var(--as-display);
+        font-size: clamp(1.2rem, 2vw, 1.5rem);
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        transition: color 0.2s ease;
+      }
+
+      .item:hover .item__title {
+        color: var(--as-accent);
+      }
+
+      .item__desc {
+        max-width: 40rem;
+        font-size: 0.975rem;
+        line-height: 1.6;
+        color: var(--as-muted);
+      }
+
+      .item__side {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        font-family: var(--as-mono);
+        font-size: 0.75rem;
+        color: var(--as-subtle);
+      }
+
+      .item__side i {
+        font-style: normal;
+        transition: transform 0.2s ease, color 0.2s ease;
+      }
+
+      .item:hover .item__side i {
+        color: var(--as-accent);
+        transform: translateX(4px);
+      }
+
+      .latest__empty {
+        padding: 2rem 0;
+        color: var(--as-subtle);
+      }
+
+      .latest__pager {
+        display: flex;
+        justify-content: space-between;
+        padding-top: 1.25rem;
+        font-family: var(--as-mono);
+        font-size: 0.75rem;
+        color: var(--as-subtle);
+      }
+
+      .latest__pager[hidden] {
+        display: none;
+      }
+
+      .latest__pager button:hover:not(:disabled) {
+        color: var(--as-accent);
+      }
+
+      .latest__pager button:disabled {
+        opacity: 0.35;
+        cursor: default;
+      }
+
+      /* ── Footer ── */
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.5rem 1.5rem;
+        max-width: 76rem;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+        border-top: 1px solid var(--as-line);
+        font-family: var(--as-mono);
+        font-size: 0.72rem;
+        color: var(--as-subtle);
+      }
+
+      .foot__mark {
+        font-family: var(--as-display);
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--as-text);
+      }
+
+      .foot a {
+        margin-left: auto;
+        color: var(--as-muted);
+        text-decoration: none;
+      }
+
+      .foot a:hover {
+        color: var(--as-accent);
+      }
+
+      @media (min-width: 56rem) {
+        .feature {
+          grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+          gap: 3rem;
+          align-items: stretch;
+        }
+      }
+
+      @media (max-width: 40rem) {
+        .item {
+          grid-template-columns: 1fr;
+          gap: 0.75rem;
+        }
+
+        .item__date {
+          display: flex;
+          gap: 0.4rem;
+        }
+
+        .item__side {
+          display: none;
+        }
+
+        .latest__search {
+          width: 100%;
+          margin-left: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .feature__title,
+        .feature__cta i,
+        .item__title,
+        .item__side i {
+          transition: none;
+        }
+      }
+    </style>
+  </body>
+</html>

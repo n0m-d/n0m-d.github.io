@@ -1,0 +1,1405 @@
+---
+title: Go Code Review Against the OWASP Top 10
+description: A practical checklist for reviewing Go code against each OWASP Top 10 (2021) category, with how the risk shows up, real CVEs, vulnerable and safer code, and grep and VS Code patterns to find it.
+tableOfContents:
+  maxHeadingLevel: 2 # one entry per OWASP category; subsections repeat in every one
+appsec:
+  tags: [golang, owasp, code-review, grep]
+  date: 2026-11-03
+---
+
+This is the checklist I use when reviewing Go services against the OWASP Top 10 (2021). Every category follows the same structure:
+
+- **What it is:** the risk in plain terms, and how it usually shows up in Go.
+- **Real-world CVEs:** examples, mostly from the Go ecosystem.
+- **Vulnerable pattern and safer version:** side-by-side code, plus the change as a diff.
+- **Finding it:** `grep` commands for the terminal and regexes for VS Code search.
+
+None of these patterns proves a vulnerability on its own. They point you to code worth reading closely; the judgment comes after.
+
+## A01:2021 - Broken Access Control
+
+### What it is
+
+Access control decides what an authenticated user is allowed to do. When it fails, users can read, change or delete data that isn't theirs. It's number one in the 2021 list because it's both common and usually easy to exploit: often all it takes is changing an ID in a request.
+
+In Go services, it typically shows up as:
+
+- **IDOR:** a handler loads a record by ID without checking who owns it.
+- **Privilege escalation:** a regular user reaches an admin-only action.
+- **Client-side trust:** checks that rely on URLs, hidden fields or other values the client controls.
+- **Trusting token claims:** a JWT `role` claim treated as the source of truth.
+- **Permissive CORS:** other origins can call the API on the user's behalf.
+
+### Real-World CVEs
+
+- **CVE-2023-28119** (crewjam/saml, CVSS 9.8 critical): The Go SAML library failed to verify the subject of a SAML assertion matched the intended recipient. An attacker with a valid signed assertion could impersonate any user via XML Signature Wrapping.
+
+- **CVE-2022-29178** (Argo CD, CVSS 8.8 high): Low-privileged users could read sensitive server files via path traversal in the repository path parameter, bypassing authorization checks entirely.
+
+### Vulnerable Pattern
+
+```go
+//  No ownership check - any authenticated user reads ANY order
+func getOrder(w http.ResponseWriter, r *http.Request) {
+    orderID := r.URL.Query().Get("id")
+    order, err := db.QueryRow("SELECT * FROM orders WHERE id = ?", orderID)
+    if err != nil {
+        http.Error(w, "not found", 404)
+        return
+    }
+    json.NewEncoder(w).Encode(order)
+}
+
+//  Trusting JWT "role" claim directly
+func isAdmin(r *http.Request) bool {
+    tokenStr := r.Header.Get("Authorization")
+    token, _ := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+        return []byte("secret"), nil
+    })
+    claims := token.Claims.(jwt.MapClaims)
+    return claims["role"] == "admin" // attacker crafts role=admin token
+}
+```
+
+### Safer Version
+
+```go
+// Ownership enforced in SQL - returns nothing if user_id mismatches
+func getOrder(w http.ResponseWriter, r *http.Request) {
+    userID := getUserIDFromSession(r)
+    orderID := r.URL.Query().Get("id")
+
+    var order Order
+    err := db.QueryRow(
+        "SELECT * FROM orders WHERE id = ? AND user_id = ?",
+        orderID, userID,
+    ).Scan(&order.ID, &order.Total, &order.UserID)
+
+    if err == sql.ErrNoRows {
+        http.Error(w, "forbidden", http.StatusForbidden)
+        return
+    }
+    json.NewEncoder(w).Encode(order)
+}
+
+// Role loaded from DB, never trusted from JWT
+func isAdmin(r *http.Request) bool {
+    userID, err := extractUserID(r)
+    if err != nil { return false }
+
+    var role string
+    err = db.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
+    return err == nil && role == "admin"
+}
+```
+
+### The Change as a Diff
+
+```diff
+ func getOrder(w http.ResponseWriter, r *http.Request) {
++    userID := getUserIDFromSession(r)
+     orderID := r.URL.Query().Get("id")
+-    order, err := db.QueryRow("SELECT * FROM orders WHERE id = ?", orderID)
++    var order Order
++    err := db.QueryRow(
++        "SELECT * FROM orders WHERE id = ? AND user_id = ?",
++        orderID, userID,
++    ).Scan(&order.ID, &order.Total, &order.UserID)
+-    if err != nil {
+-        http.Error(w, "not found", 404)
++    if err == sql.ErrNoRows {
++        http.Error(w, "forbidden", http.StatusForbidden)
+         return
+     }
+     json.NewEncoder(w).Encode(order)
+ }
+```
+
+### Finding It with grep
+
+```bash
+# IDOR: query by ID without ownership join
+grep -rn --include="*.go" 'QueryRow\(.*WHERE\s+id\s*=.*\)' . | \
+  grep -v 'user_id\|owner_id\|account_id'
+
+# Routes registered without auth middleware
+grep -rn --include="*.go" 'r\.Get\|r\.Post\|r\.Put\|r\.Delete' . | \
+  grep -v 'AuthMiddleware\|RequireAuth\|authz\|Authorize'
+
+# JWT role claims trusted directly
+grep -rn --include="*.go" 'claims\[.*role.*\]\|MapClaims.*role\|token\.Claims.*admin'
+```
+
+### Finding It in VS Code
+
+Open Search (`Ctrl+Shift+F`, or `⌘+Shift+F` on macOS), turn on regular expressions with the `.*` button, and set **files to include** to `**/*.go`. The same setup applies to every VS Code section below.
+
+```
+# Pattern 1 - IDOR
+QueryRow\(.*WHERE\s+id\s*=
+
+# Pattern 2 - routes without auth
+r\.(Get|Post|Put|Delete|Patch)\(
+
+# Pattern 3 - JWT role claims
+claims\[.*role.*\]|MapClaims.*role|token\.Claims.*admin
+```
+
+> VS Code search has no equivalent of `grep -v`, so skim the results yourself and skip matches that already reference `user_id`, `RequireAuth` or similar.
+
+## A02:2021 - Cryptographic Failures
+
+### What it is
+
+This category covers cryptography that's missing, outdated or used incorrectly, and the sensitive data that ends up exposed as a result: passwords, payment details, health records and personal information.
+
+Common findings in Go code:
+
+- **Broken algorithms:** MD5, SHA-1, DES or RC4 used for anything security-relevant.
+- **Fast password hashes:** passwords stored with plain or unsalted MD5 or SHA-256 instead of bcrypt, scrypt or Argon2.
+- **Predictable randomness:** `math/rand` used for tokens, IDs or keys instead of `crypto/rand`.
+- **Secrets in source:** keys and passwords hardcoded in the repository.
+- **Weak transport:** no TLS, or TLS 1.0 and 1.1 still allowed.
+- **ECB mode:** identical plaintext blocks produce identical ciphertext, which leaks patterns.
+
+### Real-World CVEs
+
+- **CVE-2022-27191** (golang.org/x/crypto, CVSS 7.5 high): The x/crypto/ssh package before v0.0.0-20220314234659 allowed a remote attacker to crash the server when it chose elliptic curve algorithms unsupported by the client - crash via improper cryptographic negotiation.
+
+- **CVE-2023-24532** (Go stdlib crypto/elliptic, CVSS 5.3 medium): ScalarMult and ScalarBaseMult on the P256 curve could produce incorrect output for specific inputs and return an error, potentially causing cryptographic operations to silently fail.
+
+### Vulnerable Pattern
+
+```go
+import (
+    "crypto/md5"    //  MD5 is broken
+    "math/rand"     //  not cryptographically secure
+    "fmt"
+)
+
+func hashPassword(pw string) string {
+    //  MD5, no salt, cracked in seconds with rainbow tables
+    h := md5.Sum([]byte(pw))
+    return fmt.Sprintf("%x", h)
+}
+
+func generateToken() string {
+    //  math/rand is seeded and predictable
+    return fmt.Sprintf("%d", rand.Int63())
+}
+
+var secretKey = "hardcoded-secret-1234" //  hardcoded
+```
+
+### Safer Version
+
+```go
+import (
+    "crypto/rand"               // OS-level CSPRNG
+    "encoding/hex"
+    "os"
+    "golang.org/x/crypto/bcrypt" // adaptive password hashing
+)
+
+func hashPassword(pw string) (string, error) {
+    // bcrypt: built-in salt, adaptive cost factor
+    hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
+    return string(hash), err
+}
+
+func verifyPassword(hash, pw string) bool {
+    return bcrypt.CompareHashAndPassword([]byte(hash), []byte(pw)) == nil
+}
+
+func generateToken() (string, error) {
+    // crypto/rand - truly random
+    b := make([]byte, 32)
+    _, err := rand.Read(b)
+    return hex.EncodeToString(b), err
+}
+
+// secrets from environment
+var secretKey = os.Getenv("APP_SECRET_KEY")
+```
+
+### The Change as a Diff
+
+```diff
+ import (
+-    "crypto/md5"
+-    "math/rand"
+-    "fmt"
++    "crypto/rand"
++    "encoding/hex"
++    "os"
++    "golang.org/x/crypto/bcrypt"
+ )
+
+-func hashPassword(pw string) string {
+-    h := md5.Sum([]byte(pw))
+-    return fmt.Sprintf("%x", h)
++func hashPassword(pw string) (string, error) {
++    hash, err := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
++    return string(hash), err
+ }
+
+-func generateToken() string {
+-    return fmt.Sprintf("%d", rand.Int63())
++func generateToken() (string, error) {
++    b := make([]byte, 32)
++    _, err := rand.Read(b)
++    return hex.EncodeToString(b), err
+ }
+
+-var secretKey = "hardcoded-secret-1234"
++var secretKey = os.Getenv("APP_SECRET_KEY")
+```
+
+### Finding It with grep
+
+```bash
+# Weak hashing
+grep -rn --include="*.go" \
+  '"crypto/md5"\|"crypto/sha1"\|md5\.New\|sha1\.New\|md5\.Sum\|sha1\.Sum'
+
+# Insecure RNG
+grep -rn --include="*.go" '"math/rand"\|rand\.Int\|rand\.Intn\|rand\.Float' . | \
+  grep -v 'crypto/rand'
+
+# Hardcoded secrets
+grep -rn --include="*.go" \
+  -E '(secret|password|api_key|apikey|token|passwd|pwd)\s*[:=]+\s*"[^"]+' . | \
+  grep -iv 'os\.Getenv\|config\.\|flag\.\|env\.'
+
+# Weak TLS
+grep -rn --include="*.go" \
+  'tls\.VersionTLS10\|tls\.VersionTLS11\|InsecureSkipVerify\s*:\s*true'
+
+# AES without authenticated mode (potential ECB)
+grep -rn --include="*.go" 'aes\.NewCipher\b' . | grep -v 'GCM\|CBC\|CTR\|CFB'
+```
+
+### Finding It in VS Code
+
+```
+# Weak hash imports
+"crypto/md5"|"crypto/sha1"|md5\.(New|Sum)|sha1\.(New|Sum)
+
+# Insecure RNG
+"math/rand"|rand\.(Int|Intn|Float|Seed)\b
+
+# Hardcoded secrets
+(secret|password|api_key|apikey|token|passwd)\s*[:=]+\s*"[^"]{4,}"
+
+# Weak TLS / skip verify
+VersionTLS10|VersionTLS11|InsecureSkipVerify\s*:\s*true
+```
+
+> Leave case sensitivity (`Aa`) off for the secrets pattern, so names like `apiKey` and `API_KEY` both match.
+
+## A03:2021 - Injection
+
+### What it is
+
+Injection happens when untrusted input reaches an interpreter as part of a query or command, so the input changes what gets executed. Go's standard library makes the safe path easy, which is why these bugs usually come from stepping around it:
+
+- **SQL injection:** queries built with string concatenation or `fmt.Sprintf` instead of placeholders.
+- **OS command injection:** input passed to `exec.Command("sh", "-c", ...)`.
+- **XSS:** HTML rendered with `text/template`, which doesn't escape, instead of `html/template`.
+- **Template injection:** user input parsed as a template rather than passed in as data.
+- **NoSQL injection:** unvalidated JSON used directly as a MongoDB filter.
+
+### Real-World CVEs
+
+- **CVE-2020-26160** (dgrijalva/jwt-go, CVSS 7.5 high): Applications passing JWT audience claims directly to SQL queries were vulnerable to injection. The library made no attempt to sanitize or validate claim values.
+
+- **CVE-2022-1471** (go-yaml, CVSS 9.8 critical): go-yaml deserialized arbitrary objects from YAML type tags, enabling injection of arbitrary data structures when user-supplied YAML was parsed into `interface{}`.
+
+### Vulnerable Pattern
+
+```go
+//  SQL Injection via string concat
+func searchUsers(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+    // attacker: ' OR '1'='1
+    query := "SELECT * FROM users WHERE name = '" + name + "'"
+    rows, err := db.Query(query)
+    _ = rows; _ = err
+}
+
+//  OS Command Injection
+func pingHost(w http.ResponseWriter, r *http.Request) {
+    host := r.URL.Query().Get("host")
+    // attacker: "8.8.8.8; rm -rf /"
+    out, _ := exec.Command("sh", "-c", "ping -c 1 "+host).Output()
+    w.Write(out)
+}
+
+//  XSS via text/template (no escaping)
+import "text/template"
+
+func renderProfile(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name") // attacker: <script>alert(1)</script>
+    tmpl := template.Must(template.New("").Parse(`<h1>Hello {{.}}</h1>`))
+    tmpl.Execute(w, name) //  raw output
+}
+```
+
+### Safer Version
+
+```go
+// Parameterized query
+func searchUsers(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+    rows, err := db.Query("SELECT id, name, email FROM users WHERE name = ?", name)
+    if err != nil {
+        http.Error(w, "db error", 500)
+        return
+    }
+    defer rows.Close()
+}
+
+// No shell, args as separate slice, input validated
+func pingHost(w http.ResponseWriter, r *http.Request) {
+    host := r.URL.Query().Get("host")
+    if !regexp.MustCompile(`^[a-zA-Z0-9.\-]{1,253}$`).MatchString(host) {
+        http.Error(w, "invalid host", http.StatusBadRequest)
+        return
+    }
+    out, err := exec.Command("ping", "-c", "1", host).Output()
+    if err != nil {
+        http.Error(w, "ping failed", 500)
+        return
+    }
+    w.Write(out)
+}
+
+// html/template - context-aware auto-escaping
+import "html/template"
+
+func renderProfile(w http.ResponseWriter, r *http.Request) {
+    name := r.URL.Query().Get("name")
+    tmpl := template.Must(template.New("").Parse(`<h1>Hello {{.}}</h1>`))
+    tmpl.Execute(w, name) // <script> → &lt;script&gt; automatically
+}
+```
+
+### The Change as a Diff
+
+```diff
+-    query := "SELECT * FROM users WHERE name = '" + name + "'"
+-    rows, err := db.Query(query)
++    rows, err := db.Query("SELECT id, name, email FROM users WHERE name = ?", name)
+
+-    out, err := exec.Command("sh", "-c", "ping -c 1 "+host).Output()
++    if !regexp.MustCompile(`^[a-zA-Z0-9.\-]{1,253}$`).MatchString(host) {
++        http.Error(w, "invalid host", http.StatusBadRequest)
++        return
++    }
++    out, err := exec.Command("ping", "-c", "1", host).Output()
+
+-import "text/template"
++import "html/template"
+```
+
+### Finding It with grep
+
+```bash
+# SQL injection via concatenation
+grep -rn --include="*.go" -E '(Query|Exec|QueryRow)\s*\(\s*"[^"]*"\s*\+' .
+
+# Command injection via sh -c
+grep -rn --include="*.go" 'exec\.Command.*"sh".*"-c"' .
+
+# XSS - text/template for HTML
+grep -rn --include="*.go" '"text/template"' . | grep -v '_test\.go'
+
+# fmt.Sprintf to build SQL
+grep -rn --include="*.go" -E 'fmt\.(Sprintf|Printf).*(SELECT|INSERT|UPDATE|DELETE)'
+```
+
+### Finding It in VS Code
+
+```
+# SQL injection
+(Query|Exec|QueryRow)\s*\(\s*"[^"]*"\s*\+
+
+# Command injection
+exec\.Command.*"sh".*"-c"
+
+# XSS - wrong template package
+"text/template"
+
+# Sprintf SQL building
+fmt\.(Sprintf|Printf).*(SELECT|INSERT|UPDATE|DELETE)
+```
+
+> `text/template` is fine for output that isn't HTML, such as plain-text emails or config files. It's only a finding when the result is rendered in a browser.
+
+## A04:2021 - Insecure Design
+
+### What it is
+
+Insecure design is about controls that were never planned, not code that was written badly. The implementation can be flawless and the feature still unsafe, which is why these issues are so hard to patch after the fact.
+
+What to look for during review:
+
+- **No rate limiting** on login, one-time codes or password reset.
+- **Business logic gaps,** such as a user choosing their own discount.
+- **Client-supplied prices** trusted at checkout.
+- **No step-up authentication** (MFA) before high-value actions.
+- **No separation of duties:** the same user, or the same function, can both create and approve a record.
+
+### Real-World CVEs
+
+- **CVE-2023-44487** (HTTP/2 Rapid Reset, CVSS 7.5 high): The HTTP/2 protocol allowed clients to rapidly open and immediately cancel streams, overwhelming Go servers (net/http). Fixed in Go 1.21.3/1.20.10 with server-side rate limiting on stream resets - a protocol design flaw.
+
+- **CVE-2022-41717** (Go net/http, CVSS 5.3 medium): Go's HTTP server didn't limit total HTTP/1 header size, allowing an attacker to exhaust memory by sending requests with extremely large headers. A design-level resource limit was absent.
+
+### Vulnerable Pattern
+
+```go
+//  No rate limiting - brute-force passwords indefinitely
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+    username := r.FormValue("username")
+    password := r.FormValue("password")
+    if validateCredentials(username, password) {
+        createSession(w, username)
+        return
+    }
+    http.Error(w, "invalid credentials", http.StatusUnauthorized)
+}
+```
+
+### Safer Version
+
+```go
+import (
+    "golang.org/x/time/rate"
+    "sync"
+    "net"
+)
+
+var (
+    loginLimiters = make(map[string]*rate.Limiter)
+    mu            sync.Mutex
+)
+
+func getLimiter(ip string) *rate.Limiter {
+    mu.Lock()
+    defer mu.Unlock()
+    if lim, ok := loginLimiters[ip]; ok { return lim }
+    // 5 attempts per minute per IP
+    lim := rate.NewLimiter(rate.Every(time.Minute/5), 5)
+    loginLimiters[ip] = lim
+    return lim
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+    ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+    if !getLimiter(ip).Allow() {
+        w.Header().Set("Retry-After", "60")
+        http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+        return
+    }
+    username := r.FormValue("username")
+    password := r.FormValue("password")
+    if validateCredentials(username, password) {
+        createSession(w, username)
+        return
+    }
+    http.Error(w, "invalid credentials", http.StatusUnauthorized)
+}
+```
+
+### The Change as a Diff
+
+```diff
++import (
++    "golang.org/x/time/rate"
++    "sync"
++    "net"
++)
++var (
++    loginLimiters = make(map[string]*rate.Limiter)
++    mu            sync.Mutex
++)
++func getLimiter(ip string) *rate.Limiter { ... }
+
+ func loginHandler(w http.ResponseWriter, r *http.Request) {
++    ip, _, _ := net.SplitHostPort(r.RemoteAddr)
++    if !getLimiter(ip).Allow() {
++        w.Header().Set("Retry-After", "60")
++        http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
++        return
++    }
+     username := r.FormValue("username")
+```
+
+### Finding It with grep
+
+```bash
+# Auth handlers with no rate limiter
+grep -rn --include="*.go" -l 'loginHandler\|authHandler\|signIn\|SignIn' . | \
+  xargs grep -L 'rate\.Limiter\|rate\.NewLimiter\|RateLimit\|throttle'
+
+# Price/amount set from user input (business logic)
+grep -rn --include="*.go" -E 'price|discount|amount' . | \
+  grep 'FormValue\|r\.URL\.Query\|json\.Unmarshal'
+
+# HTTP server with no timeouts (resource exhaustion)
+grep -rn --include="*.go" 'http\.ListenAndServe\b' . | \
+  grep -v 'ReadTimeout\|WriteTimeout\|Server{'
+```
+
+### Finding It in VS Code
+
+```
+# No rate limiter in auth handlers
+loginHandler|authHandler|signIn|SignIn
+
+# User-supplied price/discount
+(price|discount|amount).*(FormValue|Query\(\)|Unmarshal)
+
+# ListenAndServe with no timeout config
+http\.ListenAndServe\(
+```
+
+> For each `http.ListenAndServe` hit, check whether the service uses an `http.Server{}` with `ReadTimeout` and `WriteTimeout` set. The package-level helper sets no timeouts at all.
+
+## A05:2021 - Security Misconfiguration
+
+### What it is
+
+Misconfiguration is the issue reviewers find most often. It comes from insecure defaults, settings nobody revisited, overly verbose errors and missing hardening. In Go, many of those defaults live in a few lines of `main()`.
+
+Common findings:
+
+- **Debug endpoints:** `/debug/pprof` exposed in production.
+- **Missing security headers:** no CSP, HSTS or `X-Frame-Options`.
+- **Wildcard CORS:** `Access-Control-Allow-Origin: *`.
+- **Disabled certificate checks:** `InsecureSkipVerify: true` in a TLS config.
+- **Verbose errors:** stack traces or internal details returned to users.
+- **No server timeouts,** which leaves the service open to Slowloris-style attacks.
+
+### Real-World CVEs
+
+- **CVE-2021-33194** (golang.org/x/net, CVSS 7.5 high): The x/net/html tokenizer entered an infinite loop on certain malformed HTML. Applications parsing user-supplied HTML without resource limits (a misconfiguration of trust boundaries) could be DoS'd trivially.
+
+- **CVE-2022-32149** (golang.org/x/text, CVSS 7.5 high): `ParseAcceptLanguage` was vulnerable to DoS via a maliciously crafted `Accept-Language` header. Applications not limiting header length (a common misconfiguration) were affected.
+
+### Vulnerable Pattern
+
+```go
+import _ "net/http/pprof" //  registers /debug/pprof/* on DefaultServeMux
+
+func corsMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Access-Control-Allow-Origin", "*") //  wildcard CORS
+        next.ServeHTTP(w, r)
+    })
+}
+
+func main() {
+    //  no timeouts, no TLS, exposes pprof via default mux
+    http.ListenAndServe(":8080", nil)
+}
+```
+
+### Safer Version
+
+```go
+func securityHeaders(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        h := w.Header()
+        h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+        h.Set("X-Frame-Options", "DENY")
+        h.Set("X-Content-Type-Options", "nosniff")
+        h.Set("Content-Security-Policy", "default-src 'self'")
+        h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+        next.ServeHTTP(w, r)
+    })
+}
+
+func corsMiddleware(allowedOrigins []string) func(http.Handler) http.Handler {
+    allowed := make(map[string]bool)
+    for _, o := range allowedOrigins { allowed[o] = true }
+    return func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            origin := r.Header.Get("Origin")
+            if allowed[origin] {
+                w.Header().Set("Access-Control-Allow-Origin", origin)
+                w.Header().Set("Vary", "Origin")
+            }
+            next.ServeHTTP(w, r)
+        })
+    }
+}
+
+func main() {
+    mux := http.NewServeMux() // custom mux - no pprof exposed
+    srv := &http.Server{
+        Addr:         ":8443",
+        Handler:      securityHeaders(mux),
+        ReadTimeout:  10 * time.Second,
+        WriteTimeout: 15 * time.Second,
+        IdleTimeout:  120 * time.Second,
+        TLSConfig:    &tls.Config{MinVersion: tls.VersionTLS13},
+    }
+    srv.ListenAndServeTLS("cert.pem", "key.pem")
+}
+```
+
+### The Change as a Diff
+
+```diff
+-import _ "net/http/pprof"
+
+-w.Header().Set("Access-Control-Allow-Origin", "*")
++if allowedOrigins[origin] {
++    w.Header().Set("Access-Control-Allow-Origin", origin)
++    w.Header().Set("Vary", "Origin")
++}
+
+-http.ListenAndServe(":8080", nil)
++srv := &http.Server{
++    Addr:         ":8443",
++    Handler:      securityHeaders(mux),
++    ReadTimeout:  10 * time.Second,
++    WriteTimeout: 15 * time.Second,
++    TLSConfig:    &tls.Config{MinVersion: tls.VersionTLS13},
++}
++srv.ListenAndServeTLS("cert.pem", "key.pem")
+```
+
+### Finding It with grep
+
+```bash
+# pprof imported outside test files
+grep -rn --include="*.go" '"net/http/pprof"' . | grep -v '_test\.go'
+
+# Wildcard CORS
+grep -rn --include="*.go" 'Allow-Origin.*\*\|Allow-Origin.*"\*"'
+
+# HTTP server no timeouts
+grep -rn --include="*.go" 'http\.ListenAndServe\b' . | \
+  grep -v 'ReadTimeout\|WriteTimeout'
+
+# InsecureSkipVerify
+grep -rn --include="*.go" 'InsecureSkipVerify\s*:\s*true'
+
+# Missing security headers
+grep -rn --include="*.go" -l 'ServeHTTP\|http\.Handle\|mux\.Handle' . | \
+  xargs grep -L 'X-Frame-Options\|Strict-Transport\|Content-Security-Policy'
+```
+
+### Finding It in VS Code
+
+```
+# pprof import
+"net/http/pprof"
+
+# Wildcard CORS
+Access-Control-Allow-Origin.*\*
+
+# InsecureSkipVerify
+InsecureSkipVerify\s*:\s*true
+
+# ListenAndServe (then check for timeout config)
+http\.ListenAndServe\(
+```
+
+> There's no reliable regex for missing headers. Search for `ServeHTTP` and follow the handler chain to confirm a security-headers middleware wraps it.
+
+## A06:2021 - Vulnerable & Outdated Components
+
+### What it is
+
+Your code is only as secure as what it imports. This category covers dependencies that are outdated, unmaintained or carry known vulnerabilities, as well as not knowing which versions you actually ship.
+
+In Go projects, that usually means:
+
+- **Outdated modules** with published CVEs.
+- **Transitive dependencies** nobody has looked at.
+- **An old Go toolchain,** which brings standard library vulnerabilities with it.
+- **No `govulncheck` run** against the module.
+- **No automated scanning** in CI, such as Dependabot or Snyk.
+
+### Real-World CVEs
+
+- **CVE-2023-39325** (Go net/http + golang.org/x/net, CVSS 7.5 high): Excessive CPU usage in Go HTTP/2 servers via a stream of HEADERS frames. Any app using an outdated Go runtime or x/net/http2 was vulnerable. Fixed in Go 1.21.3+ or x/net v0.17.0.
+
+- **CVE-2023-44270** (github.com/pelletier/go-toml, CVSS 6.5 medium): Stack overflow (panic) via deeply nested TOML arrays in versions before 1.9.5/2.0.2. Applications using outdated go-toml could be crashed by a malicious config file.
+
+### Vulnerable `go.mod`
+
+```
+module myapp
+
+go 1.19  //  outdated
+
+require (
+    github.com/dgrijalva/jwt-go v3.2.0+incompatible  //  archived, CVE-2020-26160
+    golang.org/x/net v0.0.0-20220722155237-a158d28d115b  //  pre-CVE-2023-39325
+    github.com/pelletier/go-toml v1.9.4  //  CVE-2023-44270
+)
+```
+
+### Updated `go.mod`
+
+```
+module myapp
+
+go 1.21  // latest stable
+
+require (
+    github.com/golang-jwt/jwt/v5 v5.2.0       // maintained fork
+    golang.org/x/net v0.17.0                  // patched
+    github.com/pelletier/go-toml/v2 v2.1.0   // patched v2
+)
+```
+
+### Scanning Dependencies
+
+```bash
+# Install Go's official vulnerability scanner
+go install golang.org/x/vuln/cmd/govulncheck@latest
+
+# Scan your module (exits non-zero if vulns found - great for CI)
+govulncheck ./...
+
+# Show available upgrades for all dependencies
+go list -m -u all
+
+# Remove unused dependencies
+go mod tidy
+```
+
+### The Change as a Diff
+
+```diff
+-go 1.19
++go 1.21
+
+-    github.com/dgrijalva/jwt-go v3.2.0+incompatible
++    github.com/golang-jwt/jwt/v5 v5.2.0
+
+-    golang.org/x/net v0.0.0-20220722155237-a158d28d115b
++    golang.org/x/net v0.17.0
+
+-    github.com/pelletier/go-toml v1.9.4
++    github.com/pelletier/go-toml/v2 v2.1.0
+```
+
+### Finding It with grep
+
+```bash
+# Known archived jwt package
+grep -rn '"github.com/dgrijalva/jwt-go"' go.mod go.sum
+
+# Old x/net (before HTTP/2 fix)
+grep -n 'golang.org/x/net' go.mod | grep -v 'v0\.1[7-9]\|v0\.[2-9]'
+
+# Go version check - flag anything below 1.21
+grep '^go ' go.mod | awk '{if ($2 < 1.21) print "OUTDATED:", $2}'
+
+# Direct imports of known vulnerable/archived packages
+grep -rn --include="*.go" \
+  '"github.com/dgrijalva/jwt-go"\|"gopkg.in/square/go-jose\.v1"'
+```
+
+### Finding It in VS Code
+
+For these patterns, set **files to include** to `go.mod,go.sum,**/*.go`.
+
+```
+# Archived JWT package
+github\.com/dgrijalva/jwt-go
+
+# Old x/net versions (adjust version as new patches release)
+golang\.org/x/net\s+v0\.0\.0-2022
+
+# Any use of the vulnerable package in Go files
+"github\.com/dgrijalva/jwt-go"
+```
+
+> Regex is only a fallback here. `govulncheck ./...` is the right tool: it analyses your call graph and reports the vulnerabilities your code can actually reach.
+
+## A07:2021 - Identification & Authentication Failures
+
+### What it is
+
+This category covers weaknesses in how an application confirms who a user is and keeps track of them afterwards: login, sessions and tokens.
+
+Things to check:
+
+- **Weak or default passwords** are accepted.
+- **No lockout or throttling,** which leaves login open to brute force and credential stuffing.
+- **Session IDs are guessable.**
+- **Sessions survive logout.**
+- **Session tokens appear in URLs,** where they end up in logs and browser history.
+- **JWTs are accepted with `alg: none`,** or without their signature being verified.
+
+### Real-World CVEs
+
+- **CVE-2020-26160** (jwt-go, CVSS 7.5 high): The library did not validate the `aud` (audience) claim by default. Applications relying on it for all JWT validation accepted tokens intended for other services, enabling cross-service token reuse.
+
+- **CVE-2022-39237** (sysdream/ligolo, CVSS 9.8 critical): The tunneling tool accepted JWT tokens signed with `alg: none` - completely unsigned tokens were considered valid. An attacker could authenticate as any user without knowing any secret.
+
+### Vulnerable Pattern
+
+```go
+//  No algorithm enforcement - accepts "none" alg
+func parseToken(tokenStr string) (*jwt.Token, error) {
+    return jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+        return []byte("my-secret"), nil
+        //  accepts HS256, RS256, AND "none"!
+    })
+}
+
+//  Session token in URL - leaks in logs and browser history
+// GET /dashboard?session=abc123
+```
+
+### Safer Version
+
+```go
+// Strict algorithm enforcement
+func parseToken(tokenStr string) (*jwt.Token, error) {
+    return jwt.ParseWithClaims(
+        tokenStr,
+        &jwt.RegisteredClaims{},
+        func(t *jwt.Token) (interface{}, error) {
+            // Reject "none" and unexpected algorithms
+            if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+                return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+            }
+            return []byte(os.Getenv("JWT_SECRET")), nil
+        },
+        jwt.WithExpirationRequired(),
+        jwt.WithAudience("my-service"), // audience validated
+        jwt.WithIssuedAt(),
+    )
+}
+
+// Session in HttpOnly, Secure, SameSite cookie
+func setSessionCookie(w http.ResponseWriter, token string) {
+    http.SetCookie(w, &http.Cookie{
+        Name:     "session",
+        Value:    token,
+        HttpOnly: true,                 // not accessible via JS
+        Secure:   true,                 // HTTPS only
+        SameSite: http.SameSiteStrictMode, // CSRF protection
+        MaxAge:   3600,
+        Path:     "/",
+    })
+}
+```
+
+### The Change as a Diff
+
+```diff
+-return jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+-    return []byte("my-secret"), nil
+-})
++return jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{},
++    func(t *jwt.Token) (interface{}, error) {
++        if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
++            return nil, fmt.Errorf("unexpected alg: %v", t.Header["alg"])
++        }
++        return []byte(os.Getenv("JWT_SECRET")), nil
++    },
++    jwt.WithExpirationRequired(),
++    jwt.WithAudience("my-service"),
++)
+
+-// session in URL ?session=token
++http.SetCookie(w, &http.Cookie{
++    Name: "session", Value: token,
++    HttpOnly: true, Secure: true,
++    SameSite: http.SameSiteStrictMode,
++})
+```
+
+### Finding It with grep
+
+```bash
+# JWT parsed without algorithm check
+grep -rn --include="*.go" 'jwt\.Parse\b' . | grep -v 'ParseWithClaims\|SigningMethod'
+
+# Hardcoded JWT secret
+grep -rn --include="*.go" 'jwt\..*\[\]byte\(.*"[^"]\{4,\}"\)'
+
+# Cookies missing HttpOnly or Secure
+grep -rn --include="*.go" -A5 'http\.SetCookie\|&http\.Cookie{' . | \
+  grep -B5 'HttpOnly.*false\|Secure.*false'
+
+# Session token in URL
+grep -rn --include="*.go" \
+  'r\.URL\.Query.*session\|token.*r\.URL\|FormValue.*token'
+```
+
+### Finding It in VS Code
+
+```
+# jwt.Parse without algorithm check
+jwt\.Parse\(
+
+# Hardcoded JWT secret inline
+jwt\..*\[\]byte\("[^"]{4,}"\)
+
+# Cookies without security flags
+http\.SetCookie|&http\.Cookie{
+
+# Session in URL
+(URL\.Query|FormValue).*(session|token)
+```
+
+> For each `SetCookie` hit, confirm that `HttpOnly: true`, `Secure: true` and an explicit `SameSite` are all present. Fields you leave out default to the insecure option.
+
+## A08:2021 - Software & Data Integrity Failures
+
+### What it is
+
+Integrity failures happen when code or data is trusted without being verified: updates, build artifacts and payloads from users. In Go code review, the most common example is deserializing untrusted input too loosely.
+
+Look out for:
+
+- **Decoding into `interface{}`** with no type constraints.
+- **`encoding/gob`** with registered interface types on untrusted input.
+- **Auto-updates** downloaded without signature verification.
+- **Compromised dependencies** pulled into the build.
+- **Unsigned artifacts** in CI/CD pipelines.
+
+### Real-World CVEs
+
+- **CVE-2022-1471** (go-yaml, CVSS 9.8 critical): Parsing untrusted YAML with type tags allowed instantiation of arbitrary types. Applications feeding user-supplied YAML into `yaml.Unmarshal` with `interface{}` targets were vulnerable to data injection.
+
+- **CVE-2023-28842** (Moby/Docker, CVSS 6.8 medium): Docker's overlay network (Go) did not encrypt or authenticate inter-node swarm traffic, allowing an adjacent attacker to intercept and modify container network traffic in transit.
+
+### Vulnerable Pattern
+
+```go
+//  Decoding into interface{} - no type constraints
+func processPayload(data []byte) error {
+    var payload interface{}
+    if err := json.Unmarshal(data, &payload); err != nil {
+        return err
+    }
+    processAny(payload) // could be anything
+    return nil
+}
+
+//  No body size limit
+func handler(w http.ResponseWriter, r *http.Request) {
+    dec := json.NewDecoder(r.Body) //  unlimited size
+    var p interface{}
+    dec.Decode(&p)
+}
+```
+
+### Safer Version
+
+```go
+type UserPayload struct {
+    Name  string `json:"name"`
+    Email string `json:"email"`
+    Age   int    `json:"age"`
+}
+
+func processPayload(w http.ResponseWriter, r *http.Request) (*UserPayload, error) {
+    // Limit body size - prevent memory exhaustion
+    r.Body = http.MaxBytesReader(w, r.Body, 1_048_576) // 1MB
+
+    dec := json.NewDecoder(r.Body)
+    dec.DisallowUnknownFields() // reject unexpected fields
+
+    // Concrete struct - not interface{}
+    var p UserPayload
+    if err := dec.Decode(&p); err != nil {
+        return nil, fmt.Errorf("decode: %w", err)
+    }
+
+    // Validate after deserialization
+    if p.Name == "" || len(p.Name) > 100 {
+        return nil, errors.New("invalid name")
+    }
+    if !isValidEmail(p.Email) {
+        return nil, errors.New("invalid email")
+    }
+    if p.Age < 0 || p.Age > 150 {
+        return nil, errors.New("invalid age")
+    }
+    return &p, nil
+}
+```
+
+### The Change as a Diff
+
+```diff
+-var payload interface{}
+-json.Unmarshal(data, &payload)
++r.Body = http.MaxBytesReader(w, r.Body, 1_048_576)
++dec := json.NewDecoder(r.Body)
++dec.DisallowUnknownFields()
++var p UserPayload
++if err := dec.Decode(&p); err != nil { return nil, err }
++// validate p.Name, p.Email, p.Age...
+```
+
+### Finding It with grep
+
+```bash
+# Decode into interface{}
+grep -rn --include="*.go" \
+  'json\.Unmarshal\|json\.Decode\|yaml\.Unmarshal' . | grep 'interface{}'
+
+# No body size limit before JSON decode
+grep -rn --include="*.go" 'json\.NewDecoder\(r\.Body\)' . | \
+  grep -v 'MaxBytesReader\|LimitReader'
+
+# DisallowUnknownFields missing
+grep -rn --include="*.go" 'json\.NewDecoder' . | \
+  grep -v 'DisallowUnknownFields'
+
+# gob decode with interface
+grep -rn --include="*.go" 'gob\..*Decode' . | grep 'interface{}'
+```
+
+### Finding It in VS Code
+
+```
+# Unmarshal into interface{}
+(json|yaml)\.Unmarshal.*interface\{\}
+
+# NewDecoder without body limit
+json\.NewDecoder\(r\.Body\)
+
+# gob + interface{}
+gob\..*(Decode|Encode).*interface\{\}
+```
+
+> For each `NewDecoder(r.Body)` hit, look a few lines up for `http.MaxBytesReader` and a few lines down for `DisallowUnknownFields`.
+
+## A09:2021 - Security Logging & Monitoring Failures
+
+### What it is
+
+If an attack leaves no trace, nobody can detect it or investigate it afterwards. This category is about logging the right events, keeping secrets out of logs, and making sure someone notices when things go wrong.
+
+Common gaps:
+
+- **Authentication events** such as failed logins and lockouts aren't logged.
+- **Sensitive data,** like passwords and tokens, is logged in plain text.
+- **Log injection:** user input concatenated into log lines can forge entries.
+- **Swallowed errors:** `_ = err` hides failures entirely.
+- **No alerting** on repeated failures.
+- **Unstructured logs** that are hard to search or feed into monitoring.
+
+### Real-World CVEs
+
+- **CVE-2021-44228** (Log4Shell (instructive pattern), CVSS 10.0 critical): While a Java vulnerability, Log4Shell's root cause - evaluating expressions embedded in log messages - is an important pattern for Go: never pass user input directly to log functions without sanitization. Go doesn't evaluate expressions in logs, but log injection still corrupts log structure.
+
+- **CVE-2023-26483** (gosaml2, CVSS 6.5 medium): The gosaml2 library failed to log SAML authentication errors. Authentication bypass attempts occurred silently, giving security teams zero visibility into repeated failed assertions and making post-incident forensics impossible.
+
+### Vulnerable Pattern
+
+```go
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+    username := r.FormValue("username")
+    password := r.FormValue("password")
+
+    //  Password logged in plaintext
+    log.Printf("Login attempt: user=%s pass=%s", username, password)
+
+    if !validateCredentials(username, password) {
+        //  Log injection: username could be "admin\nERROR: system hacked"
+        //  No counter/alerting for repeated failures
+        log.Printf("Failed login for: " + username)
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+}
+```
+
+### Safer Version
+
+```go
+import "log/slog" // Go 1.21+ structured logging
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+    username := r.FormValue("username")
+    password := r.FormValue("password")
+    ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+    // Sanitize username - strip newlines to prevent log injection
+    safeUser := strings.Map(func(r rune) rune {
+        if r == '\n' || r == '\r' { return -1 }
+        return r
+    }, username)
+
+    if !validateCredentials(username, password) {
+        // Structured audit log - no password, sanitized input
+        slog.Warn("login_failed",
+            "username", safeUser,
+            "ip",       ip,
+            "ua",       r.Header.Get("User-Agent"),
+            "ts",       time.Now().UTC(),
+        )
+        // Increment Prometheus counter for alerting
+        loginFailuresTotal.With(prometheus.Labels{"ip": ip}).Inc()
+        http.Error(w, "unauthorized", http.StatusUnauthorized)
+        return
+    }
+    // Log success for audit trail too
+    slog.Info("login_success", "username", safeUser, "ip", ip)
+}
+```
+
+### The Change as a Diff
+
+```diff
+-log.Printf("Login attempt: user=%s pass=%s", username, password)
+-log.Printf("Failed login for: " + username)
++safeUser := strings.Map(func(r rune) rune {
++    if r == '\n' || r == '\r' { return -1 }
++    return r
++}, username)
++slog.Warn("login_failed",
++    "username", safeUser,
++    "ip",       ip,
++    "ts",       time.Now().UTC(),
++)
++loginFailuresTotal.With(prometheus.Labels{"ip": ip}).Inc()
+```
+
+### Finding It with grep
+
+```bash
+# Passwords or secrets in log statements
+grep -rn --include="*.go" \
+  -E '(log\.|slog\.|fmt\.Print).*(password|passwd|secret|token|key|credential)'
+
+# Log injection - user input concatenated into log
+grep -rn --include="*.go" 'log\.Printf\|log\.Println' . | grep '".*+\s*\w'
+
+# Errors silently discarded
+grep -rn --include="*.go" -E '_\s*=\s*(err|error)\b'
+
+# Auth failures with no logging
+grep -rn --include="*.go" 'StatusUnauthorized\|StatusForbidden' . | \
+  grep -v 'log\.\|slog\.\|logger\.'
+```
+
+### Finding It in VS Code
+
+```
+# Secrets in log calls
+(log\.|slog\.|fmt\.Print).*(password|passwd|secret|token|key|credential)
+
+# Log string concatenation (injection risk)
+log\.(Printf|Println|Print)\(.*\+
+
+# Silent error discard
+_\s*=\s*(err|error)\b
+
+# 401/403 without logging nearby
+StatusUnauthorized|StatusForbidden
+```
+
+> For the 401/403 pattern, check the surrounding lines for a `slog` or `log` call. A rejected request that leaves no trace is a logging gap.
+
+## A10:2021 - Server-Side Request Forgery (SSRF)
+
+### What it is
+
+Server-side request forgery happens when the server fetches a URL supplied by the user without checking where it points. The request comes from inside your network, so it can reach things an outside attacker can't.
+
+What an attacker can do with it:
+
+- **Read cloud metadata** at `169.254.169.254` and steal IAM credentials on AWS or GCP.
+- **Scan internal networks** from behind the firewall.
+- **Read local files** through the `file://` scheme, if the client supports it.
+- **Reach internal services** such as Redis, the Kubernetes API or databases.
+- **Bypass IP allowlists** through DNS rebinding.
+
+### Real-World CVEs
+
+- **CVE-2022-29810** (Hashicorp go-getter, CVSS 7.7 high): go-getter (used by Terraform and Nomad) followed symlinks and allowed `file://` and other dangerous URL schemes without restriction. An attacker supplying a crafted source URL could read arbitrary server files or trigger internal requests.
+
+- **CVE-2023-28432** (MinIO, CVSS 7.5 high): MinIO's Go implementation exposed an `/minio/health/cluster` endpoint that returned environment variables (including `SECRET_KEY`) in a distributed config. Combined with SSRF, attackers could retrieve admin credentials by directing the server to respond to crafted health check requests.
+
+### Vulnerable Pattern
+
+```go
+//  Fetches any URL - including internal resources
+func fetchPreview(w http.ResponseWriter, r *http.Request) {
+    url := r.URL.Query().Get("url")
+    // attacker: http://169.254.169.254/latest/meta-data/iam/
+    // attacker: file:///etc/passwd
+    // attacker: http://internal-redis:6379
+    resp, err := http.Get(url) //  SSRF
+    if err != nil {
+        http.Error(w, err.Error(), 500)
+        return
+    }
+    defer resp.Body.Close()
+    io.Copy(w, resp.Body) //  no size limit either
+}
+```
+
+### Safer Version
+
+```go
+var privateRanges = []string{
+    "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16",
+    "127.0.0.0/8", "169.254.0.0/16", // AWS metadata
+    "::1/128", "fc00::/7",
+}
+
+func isPrivateIP(ipStr string) bool {
+    ip := net.ParseIP(ipStr)
+    if ip == nil { return true } // can't parse → deny
+    for _, cidr := range privateRanges {
+        _, network, _ := net.ParseCIDR(cidr)
+        if network.Contains(ip) { return true }
+    }
+    return false
+}
+
+func safeHTTPClient() *http.Client {
+    dialer := &net.Dialer{}
+    return &http.Client{
+        Timeout: 10 * time.Second,
+        Transport: &http.Transport{
+            DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+                host, port, _ := net.SplitHostPort(addr)
+                // Resolve DNS first, then check each resolved IP
+                ips, err := net.LookupHost(host)
+                if err != nil { return nil, err }
+                for _, ip := range ips {
+                    if isPrivateIP(ip) {
+                        return nil, fmt.Errorf("ssrf: blocked private IP %s", ip)
+                    }
+                }
+                return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0], port))
+            },
+        },
+    }
+}
+
+func fetchPreview(w http.ResponseWriter, r *http.Request) {
+    rawURL := r.URL.Query().Get("url")
+    parsed, err := url.Parse(rawURL)
+    // Only allow http/https - blocks file://, ftp://, gopher://
+    if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+        http.Error(w, "invalid url", http.StatusBadRequest)
+        return
+    }
+    client := safeHTTPClient()
+    resp, err := client.Get(rawURL)
+    if err != nil {
+        http.Error(w, "fetch error", 500)
+        return
+    }
+    defer resp.Body.Close()
+    // Limit response size - prevent memory exhaustion
+    io.Copy(w, io.LimitReader(resp.Body, 5_242_880)) // 5MB max
+}
+```
+
+### The Change as a Diff
+
+```diff
+-url := r.URL.Query().Get("url")
+-resp, err := http.Get(url)
+-io.Copy(w, resp.Body)
++rawURL := r.URL.Query().Get("url")
++parsed, err := url.Parse(rawURL)
++if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") {
++    http.Error(w, "invalid url", http.StatusBadRequest)
++    return
++}
++client := safeHTTPClient() // blocks private IPs via custom DialContext
++resp, err := client.Get(rawURL)
++if err != nil { http.Error(w, "fetch error", 500); return }
++defer resp.Body.Close()
++io.Copy(w, io.LimitReader(resp.Body, 5_242_880))
+
++func safeHTTPClient() *http.Client {
++    // ... custom DialContext that resolves DNS and blocks private IPs
++}
+```
+
+### Finding It with grep
+
+```bash
+# http.Get/Post with user-supplied URL
+grep -rn --include="*.go" \
+  'http\.Get\|http\.Post\|http\.Do\|client\.Get\|client\.Post' . | \
+  grep -E 'r\.URL\.|r\.Form|Query\(\)|FormValue'
+
+# Non-https schemes allowed
+grep -rn --include="*.go" 'url\.Parse\|url\.ParseRequestURI' . | \
+  grep -v '"https"\|"http"'
+
+# No scheme validation before fetch
+grep -rn --include="*.go" -B5 'http\.Get\|http\.NewRequest' . | \
+  grep -v 'Scheme\s*!=\|Scheme\s*=='
+
+# No LimitReader on fetched response body
+grep -rn --include="*.go" 'resp\.Body' . | \
+  grep 'io\.Copy\|ioutil\.ReadAll' | \
+  grep -v 'LimitReader\|MaxBytesReader'
+```
+
+### Finding It in VS Code
+
+```
+# http.Get with user input
+http\.(Get|Post|Do)\(.*r\.(URL|Form|FormValue)
+
+# url.Parse without scheme check nearby
+url\.(Parse|ParseRequestURI)\(
+
+# io.Copy from resp.Body without limit
+io\.Copy\(.*resp\.Body
+
+# No LimitReader on response
+ioutil\.ReadAll\(resp\.Body\)
+```
+
+> Start with `http.Get(`. For each hit, trace the URL back to its source. If it comes from `r.URL`, `FormValue` or `Query()`, confirm the request goes through a client like `safeHTTPClient` that blocks private addresses.
+
+## Quick Reference: Every VS Code Pattern
+
+All the VS Code patterns from this guide in one table. The setup is the same as before: regular expressions on, files to include set to `**/*.go`.
+
+| OWASP | What to find      | VS Code Regex                                             |
+| ----- | ----------------- | --------------------------------------------------------- |
+| A01   | IDOR queries      | `QueryRow\(.*WHERE\s+id\s*=`                              |
+| A01   | JWT role trust    | `claims\[.*role.*\]\|MapClaims.*role`                     |
+| A02   | Weak hash         | `"crypto/md5"\|"crypto/sha1"`                             |
+| A02   | Insecure RNG      | `"math/rand"`                                             |
+| A02   | Hardcoded secrets | `(secret\|password\|token)\s*=\s*"[^"]{4,}"`              |
+| A02   | Skip TLS verify   | `InsecureSkipVerify\s*:\s*true`                           |
+| A03   | SQL injection     | `(Query\|Exec)\s*\(\s*"[^"]*"\s*\+`                       |
+| A03   | Command injection | `exec\.Command.*"sh".*"-c"`                               |
+| A03   | XSS template      | `"text/template"`                                         |
+| A04   | No rate limiter   | `loginHandler\|authHandler` (then check for rate.Limiter) |
+| A05   | pprof exposed     | `"net/http/pprof"`                                        |
+| A05   | Wildcard CORS     | `Access-Control-Allow-Origin.*\*`                         |
+| A06   | Old jwt package   | `github\.com/dgrijalva/jwt-go`                            |
+| A07   | Weak JWT parse    | `jwt\.Parse\(` (check for alg enforcement)                |
+| A07   | Insecure cookie   | `http\.SetCookie` (check HttpOnly/Secure)                 |
+| A08   | Untyped decode    | `(json\|yaml)\.Unmarshal.*interface\{\}`                  |
+| A08   | No body limit     | `json\.NewDecoder\(r\.Body\)`                             |
+| A09   | Secrets in logs   | `log\..*\(.*password\|secret\|token`                      |
+| A09   | Silent errors     | `_\s*=\s*(err\|error)\b`                                  |
+| A10   | SSRF fetch        | `http\.Get\(.*r\.(URL\|Form`                              |
+| A10   | No response limit | `io\.Copy\(.*resp\.Body`                                  |
+
+## Final Thoughts
+
+Regex gets you to the right files quickly, but it can't tell you whether input is trusted, whether a check runs on every path, or whether a design makes sense. Treat each hit as a question, follow the data from source to sink, and pair this checklist with `govulncheck`, `gosec` and tests that exercise the security-relevant paths.

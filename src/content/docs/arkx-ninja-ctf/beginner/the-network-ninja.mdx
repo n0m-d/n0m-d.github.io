@@ -74,7 +74,7 @@ check 127.0.0.1;whoami
 **Agent response:**
 
 ```text
-❌ SYSTEM CORRUPTION DETECTED. ABORTING. (LIST/CAT ONLY)
+ SYSTEM CORRUPTION DETECTED. ABORTING. (LIST/CAT ONLY)
 ```
 
 Two facts at once:
@@ -95,7 +95,7 @@ check 127.0.0.1 && pwd
 **Agent response:**
 
 ```text
-❌ SYSTEM CORRUPTION DETECTED. ABORTING. (LIST/CAT ONLY)
+ SYSTEM CORRUPTION DETECTED. ABORTING. (LIST/CAT ONLY)
 ```
 
 `&&` is a second way to chain commands. The filter still fired, this time because of `pwd`, not because of the operator. The corruption string did not change. The denylist is about which programs appear in the tail, not about whether injection is possible.

@@ -1,0 +1,59 @@
+---
+# Files starting with "_" are not published.
+# Copy to e.g. appsec/code-review/express-search-sqli.mdx to publish a code review.
+title: SQL Injection in an Express Search Endpoint
+description: A query parameter reaches a raw SQL string through a helper that looks safe. Root cause, exploit, and the patch.
+appsec:
+  severity: high # critical | high | medium | low | info
+  target: acme/storefront-api
+  language: TypeScript
+  affected: "<= 2.4.0"
+  fixed: "2.4.1 (a1b2c3d)"
+  cwe: [89]
+  tags: [express, postgres]
+  date: 2026-11-03
+---
+
+import { ReviewComment } from "~/components/appsec/mdx";
+
+## Summary
+
+One paragraph: what is broken, who can reach it, what they get.
+
+## Source → Sink
+
+```ts title="src/routes/search.ts" {6}
+import { db } from "../db";
+
+export async function search(req, res) {
+  const q = req.query.q;
+  // ...
+  const rows = await db.query(`SELECT * FROM products WHERE name LIKE '%${q}%'`);
+  res.json(rows);
+}
+```
+
+<ReviewComment file="src/routes/search.ts" line={6} severity="high" status="blocking">
+  `req.query.q` is interpolated straight into the SQL string. Any caller controls the `WHERE` clause.
+</ReviewComment>
+
+## Root Cause
+
+## Exploitation
+
+```http
+GET /search?q=%27%20UNION%20SELECT%20email,password_hash%20FROM%20users--%20 HTTP/1.1
+```
+
+## Fix
+
+```diff lang="ts" title="src/routes/search.ts"
+- const rows = await db.query(`SELECT * FROM products WHERE name LIKE '%${q}%'`);
++ const rows = await db.query("SELECT * FROM products WHERE name LIKE $1", [`%${q}%`]);
+```
+
+<ReviewComment file="src/routes/search.ts" line={6} status="resolved">
+  Parameterized. Also worth a lint rule banning template literals in `db.query`.
+</ReviewComment>
+
+## Takeaways

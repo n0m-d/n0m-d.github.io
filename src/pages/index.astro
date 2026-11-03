@@ -21,6 +21,7 @@
     <link rel="prefetch" href="/getting-started/introduction/overview/" />
     <link rel="prefetch" href="/about/" />
     <link rel="prefetch" href="/tools/" />
+    <link rel="prefetch" href="/appsec/" />
     <style>
       :root {
         --void: #060d12;
@@ -34,6 +35,8 @@
         --cyan-rgb: 62, 240, 232;
         --violet: #c4b4ff;
         --violet-rgb: 196, 180, 255;
+        --pink: #ff79c6;
+        --pink-rgb: 255, 121, 198;
         --teal: #38c088;
         --amber: #ffcc55;
         --text: #f2fff6;
@@ -1189,6 +1192,12 @@
       }
 
       .nav-links li:nth-child(3) a:hover::after {
+        background: var(--pink);
+        border-color: var(--pink);
+        box-shadow: 0 0 12px rgba(var(--pink-rgb), 0.5), 0 0 0 2px rgba(6, 14, 20, 0.9);
+      }
+
+      .nav-links li:last-child a:hover::after {
         background: var(--violet);
         border-color: var(--violet);
         box-shadow: 0 0 12px rgba(var(--violet-rgb), 0.45), 0 0 0 2px rgba(6, 14, 20, 0.9);
@@ -1856,6 +1865,7 @@
       .vol-row--01 { --card-accent: var(--phosphor-rgb); }
       .vol-row--02 { --card-accent: var(--cyan-rgb); }
       .vol-row--03 { --card-accent: var(--violet-rgb); }
+      .vol-row--04 { --card-accent: var(--pink-rgb); }
 
       .vol-row__tick {
         position: absolute;
@@ -3933,6 +3943,7 @@
           <ul class="nav-links">
             <li><a href="#archive">ARCHIVE</a></li>
             <li><a href="/tools/">TOOLS/ POC</a></li>
+            <li><a href="/appsec/">APPSEC</a></li>
             <li><a href="/about/">ABOUT</a></li>
           </ul>
           <a href="/getting-started/introduction/overview/" class="nav-cta">
@@ -4019,7 +4030,7 @@
       <section class="beat beat--poster" data-section id="archive">
         <div class="beat-inner">
           <div class="poster-shell poster-shell--archive">
-            <p class="poster-mark" aria-hidden="true">INDEX<em>VOL.01–03</em></p>
+            <p class="poster-mark" aria-hidden="true">INDEX<em>VOL.01–04</em></p>
             <div class="poster-grid-bg" aria-hidden="true"></div>
             <div class="poster-corners" aria-hidden="true">
               <span></span><span></span><span></span><span></span>
@@ -4084,6 +4095,22 @@
                 <span class="vol-row__cmd">
                   <span class="vol-row__addr" aria-hidden="true">0x03A0</span>
                   <span class="vol-row__go">ls ./tools <i aria-hidden="true">→</i></span>
+                </span>
+              </a>
+              <a href="/appsec/" class="card vol-row vol-row--04">
+                <span class="vol-row__scan" aria-hidden="true"></span>
+                <span class="vol-row__tick" aria-hidden="true"></span>
+                <span class="vol-row__idx" aria-hidden="true">04</span>
+                <div class="vol-row__head">
+                  <h3>AppSec</h3>
+                  <span class="vol-row__code">vol.04 · .appsec</span>
+                </div>
+                <div class="vol-row__body">
+                  <p>Secure code review write-ups — tracing sources to sinks, root causes, and fixes.</p>
+                </div>
+                <span class="vol-row__cmd">
+                  <span class="vol-row__addr" aria-hidden="true">0x04C0</span>
+                  <span class="vol-row__go">git diff ./appsec <i aria-hidden="true">→</i></span>
                 </span>
               </a>
             </div>

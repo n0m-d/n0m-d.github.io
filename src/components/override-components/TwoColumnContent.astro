@@ -1,6 +1,15 @@
 ---
 import Breadcrumb from "../Breadcrumb.astro";
+import PostLayout from "../appsec/PostLayout.astro";
+import { isAppSecId } from "@/lib/appsec";
 ---
+
+{isAppSecId(Astro.locals.starlightRoute.id) ? (
+  <PostLayout>
+    <slot name="right-sidebar" slot="rail" />
+    <slot />
+  </PostLayout>
+) : (
 
 <div class="content-container">
   <div class="main-pane">
@@ -24,6 +33,7 @@ import Breadcrumb from "../Breadcrumb.astro";
     )
   }
 </div>
+)}
 
 <style>
   @layer starlight.core {

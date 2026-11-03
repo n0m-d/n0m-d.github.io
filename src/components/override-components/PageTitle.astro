@@ -1,0 +1,7 @@
+---
+import Default from "@astrojs/starlight/components/PageTitle.astro";
+import PostHeader from "../appsec/PostHeader.astro";
+import { isAppSecId } from "@/lib/appsec";
+---
+
+{isAppSecId(Astro.locals.starlightRoute.id) ? <PostHeader /> : <Default />}

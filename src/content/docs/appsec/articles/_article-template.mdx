@@ -1,0 +1,33 @@
+---
+# Files starting with "_" are not published.
+# Copy to e.g. appsec/articles/owasp-top-10-revisited.mdx to publish an article.
+# Anything under appsec/articles/ is an "article" automatically.
+title: OWASP Top 10, Revisited
+description: What moved, what's new, and what the list still gets wrong for code reviewers.
+appsec:
+  tags: [owasp, methodology]
+  cwe: [284, 89, 918]
+  date: 2026-11-03
+---
+
+import { RiskCard } from "~/components/appsec/mdx";
+
+## Why revisit it
+
+## The list
+
+<RiskCard id="A01:2025" title="Broken Access Control" trend="same" cwe={[284, 639]}>
+  Still number one. IDOR and missing function-level checks dominate real reviews.
+</RiskCard>
+
+<RiskCard id="A05:2025" title="Injection" trend="down" was="A03" cwe={[89, 78]}>
+  ORMs and parameterized APIs moved the needle, but raw query escapes still slip through.
+</RiskCard>
+
+<RiskCard id="A10:2025" title="Mishandling of Exceptional Conditions" trend="new">
+  Fail-open error paths: the auth check that throws and lets the request through.
+</RiskCard>
+
+## What it misses
+
+## Takeaways

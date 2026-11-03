@@ -1,0 +1,165 @@
+---
+/** Editorial title block for AppSec posts, with a slim security fact strip. */
+import { KIND_LABEL, cweId, cweUrl, formatDate, getKind, readingMinutes } from "@/lib/appsec";
+
+const { entry } = Astro.locals.starlightRoute;
+const meta = entry.data.appsec;
+const kind = getKind(entry);
+
+const facts = [
+  meta?.target && { label: "Target", value: meta.target, mono: true },
+  meta?.language && { label: "Language", value: meta.language },
+  meta?.affected && { label: "Affected", value: meta.affected, mono: true, tone: "del" },
+  meta?.fixed && { label: "Fixed in", value: meta.fixed, mono: true, tone: "add" },
+].filter(Boolean) as { label: string; value: string; mono?: boolean; tone?: string }[];
+const cwes = meta?.cwe ?? [];
+---
+
+<header class="ph">
+  <p class="as-kicker">
+    <a href="/appsec/">AppSec</a>
+    <span aria-hidden="true">/</span>
+    <span>{KIND_LABEL[kind]}</span>
+    {meta?.severity && <span data-severity={meta.severity}>{meta.severity}</span>}
+  </p>
+
+  <h1 id="_top">{entry.data.title}</h1>
+  {entry.data.description && <p class="ph__lede">{entry.data.description}</p>}
+
+  <p class="ph__byline">
+    <span>By <strong>v0iid</strong></span>
+    {meta?.date && <time datetime={meta.date.toISOString()}>{formatDate(meta.date)}</time>}
+    <span>{readingMinutes(entry.body)} min read</span>
+    {meta?.tags.map((t) => <span class="ph__tag">#{t}</span>)}
+  </p>
+
+  {(facts.length > 0 || cwes.length > 0) && (
+    <dl class="ph__facts">
+      {facts.map((f) => (
+        <div>
+          <dt>{f.label}</dt>
+          <dd class:list={{ mono: f.mono, [f.tone ?? ""]: f.tone }}>{f.value}</dd>
+        </div>
+      ))}
+      {cwes.length > 0 && (
+        <div>
+          <dt>Weakness</dt>
+          <dd class="mono">
+            {cwes.map((c) => (
+              <a href={cweUrl(c)} target="_blank" rel="noopener noreferrer">CWE-{cweId(c)}</a>
+            ))}
+          </dd>
+        </div>
+      )}
+    </dl>
+  )}
+</header>
+
+<style>
+  .ph {
+    padding-bottom: 2.5rem;
+  }
+
+  .as-kicker a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .as-kicker > span[aria-hidden] {
+    color: var(--as-subtle);
+  }
+
+  h1 {
+    margin: 1.25rem 0 0;
+    font-family: var(--as-display);
+    font-size: clamp(2rem, 4.2vw, 3rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    color: var(--as-text);
+    text-wrap: balance;
+  }
+
+  .ph__lede {
+    margin: 1.25rem 0 0;
+    font-size: clamp(1.1rem, 2vw, 1.3rem);
+    line-height: 1.55;
+    color: var(--as-muted);
+    text-wrap: pretty;
+  }
+
+  .ph__byline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.25rem;
+    margin: 1.75rem 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--as-line);
+    font-family: var(--as-mono);
+    font-size: 0.75rem;
+    color: var(--as-subtle);
+  }
+
+  .ph__byline strong {
+    font-weight: 500;
+    color: var(--as-text);
+  }
+
+  .ph__tag {
+    color: var(--as-cyan);
+  }
+
+  .ph__facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    margin: 1.5rem 0 0;
+    border: 1px solid var(--as-line);
+    border-radius: 0.75rem;
+    background: var(--as-panel);
+    overflow: hidden;
+  }
+
+  .ph__facts div {
+    padding: 0.85rem 1rem;
+    border-right: 1px solid var(--as-line);
+  }
+
+  .ph__facts div:last-child {
+    border-right: none;
+  }
+
+  .ph__facts dt {
+    font-family: var(--as-mono);
+    font-size: 0.625rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--as-subtle);
+  }
+
+  .ph__facts dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    color: var(--as-text);
+    overflow-wrap: anywhere;
+  }
+
+  .ph__facts .mono {
+    font-family: var(--as-mono);
+    font-size: 0.8rem;
+  }
+
+  .ph__facts .del { color: var(--as-del); }
+  .ph__facts .add { color: var(--as-add); }
+
+  .ph__facts a {
+    color: var(--as-accent);
+    text-decoration: none;
+  }
+
+  .ph__facts a:hover {
+    text-decoration: underline;
+  }
+</style>

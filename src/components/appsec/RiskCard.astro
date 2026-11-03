@@ -1,0 +1,137 @@
+---
+/**
+ * Ranked risk entry for list-style articles (e.g. "OWASP Top 10 revisited").
+ *
+ *   <RiskCard id="A01:2025" title="Broken Access Control" trend="same" cwe={[284, 639]}>
+ *     Still #1 — IDOR and missing function-level checks dominate.
+ *   </RiskCard>
+ */
+import { cweId, cweUrl } from "@/lib/appsec";
+
+interface Props {
+  id: string;
+  title: string;
+  trend?: "up" | "down" | "same" | "new";
+  was?: string;
+  cwe?: (string | number)[];
+}
+
+const { id, title, trend, was, cwe = [] } = Astro.props;
+const trendLabel = { up: "▲ moved up", down: "▼ moved down", same: "● unchanged", new: "✦ new" };
+---
+
+<article class="risk not-content" data-trend={trend}>
+  <span class="risk__id">{id}</span>
+  <div class="risk__main">
+    <header class="risk__head">
+      <h3 class="risk__title">{title}</h3>
+      {trend && (
+        <span class="risk__trend">{trendLabel[trend]}{was && <span> · was {was}</span>}</span>
+      )}
+    </header>
+    <div class="risk__body"><slot /></div>
+    {cwe.length > 0 && (
+      <p class="risk__cwe">
+        {cwe.map((c) => (
+          <a href={cweUrl(c)} target="_blank" rel="noopener noreferrer">CWE-{cweId(c)}</a>
+        ))}
+      </p>
+    )}
+  </div>
+</article>
+
+<style>
+  .risk {
+    --trend: var(--as-subtle);
+    display: grid;
+    grid-template-columns: 6.5rem 1fr;
+    gap: 1.25rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--as-line);
+  }
+
+  .risk + .risk {
+    margin-top: 0;
+  }
+
+  .risk[data-trend="up"] { --trend: var(--as-del); }
+  .risk[data-trend="down"] { --trend: var(--as-add); }
+  .risk[data-trend="new"] { --trend: var(--as-mark); }
+
+  .risk__id {
+    font-family: var(--as-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--as-accent);
+  }
+
+  .risk__main {
+    min-width: 0;
+  }
+
+  .risk__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1rem;
+  }
+
+  .risk__title {
+    margin: 0;
+    font-family: var(--as-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--as-text);
+  }
+
+  .risk__trend {
+    font-family: var(--as-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--trend);
+  }
+
+  .risk__trend span {
+    color: var(--as-subtle);
+  }
+
+  .risk__body {
+    margin-top: 0.5rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--as-muted);
+  }
+
+  .risk__body :global(> :first-child) { margin-top: 0; }
+  .risk__body :global(> :last-child) { margin-bottom: 0; }
+
+  .risk__cwe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin: 0.75rem 0 0;
+  }
+
+  .risk__cwe a {
+    font-family: var(--as-mono);
+    font-size: 0.72rem;
+    color: var(--as-accent);
+    text-decoration: none;
+  }
+
+  .risk__cwe a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 40rem) {
+    .risk {
+      grid-template-columns: 1fr;
+      gap: 0.6rem;
+    }
+  }
+</style>

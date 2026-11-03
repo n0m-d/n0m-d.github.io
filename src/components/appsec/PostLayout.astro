@@ -1,0 +1,72 @@
+---
+/** Editorial layout for AppSec posts: one reading column + slim TOC in the margin. */
+---
+
+<div class="post">
+  <div class="post__main"><slot /></div>
+  <aside class="post__margin print:hidden" aria-label="On this page">
+    <div class="post__sticky"><slot name="rail" /></div>
+  </aside>
+</div>
+
+<style>
+  .post {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .post__main {
+    min-width: 0;
+  }
+
+  .post__main :global(.content-panel) {
+    padding-inline: 0;
+  }
+
+  .post__main :global(.content-panel + .content-panel) {
+    border-top: none;
+  }
+
+  .post__main :global(.sl-container) {
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  .post__margin {
+    display: none;
+  }
+
+  /* Below 72rem Starlight's own mobile TOC bar takes over. */
+  @media (min-width: 72rem) {
+    .post {
+      grid-template-columns: minmax(0, 1fr) 13rem;
+    }
+
+    .post__margin {
+      display: block;
+    }
+
+    .post__sticky {
+      position: sticky;
+      top: calc(var(--sl-nav-height, 4rem) + 2.5rem);
+      max-height: calc(100vh - 8rem);
+      overflow-y: auto;
+      scrollbar-width: none;
+      padding-left: 1.25rem;
+      border-left: 1px solid var(--as-line);
+    }
+
+    .post__sticky :global(.right-sidebar-panel .sl-container) {
+      width: auto;
+    }
+
+    .post__sticky :global(h2) {
+      font-family: var(--as-mono);
+      font-size: 0.6875rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--as-subtle);
+    }
+  }
+</style>

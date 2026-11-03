@@ -9,10 +9,13 @@
       "url": "/getting-started/introduction/overview/"
     },
     {
+      "name": "AppSec",
+      "url": "/appsec/"
+    },
+    {
       "name": "About",
       "url": "/about/"
     }
   ],
-  "footer": {
-  }
+  "footer": {}
 }

@@ -81,11 +81,13 @@ export function initDocsIndex(
       if (pagination) pagination.hidden = !hasResults;
       if (counter) counter.textContent = String(total);
 
-      if (hasResults && pageRange && pageIndicator) {
-        const from = start + 1;
-        const to = Math.min(end, total);
-        pageRange.textContent = `Showing ${from}–${to} of ${total}`;
-        pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+      if (hasResults) {
+        if (pageRange) {
+          pageRange.textContent = `Showing ${start + 1}–${Math.min(end, total)} of ${total}`;
+        }
+        if (pageIndicator) {
+          pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+        }
       }
 
       if (prevPage) prevPage.disabled = currentPage <= 1;
@@ -186,4 +188,15 @@ export function bootDocsIndex(rootId: string, options: DocsIndexOptions = {}): v
   teardowns.get(rootId)?.();
   const teardown = initDocsIndex(rootId, options);
   if (teardown) teardowns.set(rootId, teardown);
+}
+
+/** Boot every `[data-docs-index]` root on the page, now and after view transitions. */
+export function bootAllDocsIndexes(options: DocsIndexOptions = { defaultPerPage: 10 }): void {
+  const run = (): void => {
+    document.querySelectorAll<HTMLElement>('[data-docs-index]').forEach((root) => {
+      if (root.id) bootDocsIndex(root.id, options);
+    });
+  };
+  run();
+  document.addEventListener('astro:page-load', run);
 }

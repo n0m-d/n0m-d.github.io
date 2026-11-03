@@ -51,7 +51,8 @@ export default defineConfig({
       social: social.main || [],
       locales,
       sidebar: sidebar.main || [],
-      customCss: ["./src/styles/global.css", "./src/styles/view-transitions.css"],
+      routeMiddleware: "./src/starlightRouteData.ts",
+      customCss: ["./src/styles/global.css", "./src/styles/appsec.css", "./src/styles/view-transitions.css"],
       components: {
         Head: "./src/components/override-components/Head.astro",
         Header: "./src/components/override-components/Header.astro",
@@ -62,6 +63,7 @@ export default defineConfig({
         ContentPanel: "./src/components/override-components/ContentPanel.astro",
         Pagination: "./src/components/override-components/Pagination.astro",
         Sidebar: "./src/components/override-components/Sidebar.astro",
+        PageTitle: "./src/components/override-components/PageTitle.astro",
         
         
       },

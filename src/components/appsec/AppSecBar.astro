@@ -1,0 +1,118 @@
+---
+/** Masthead bar shared by the /appsec/ landing page and AppSec posts. Loads the journal fonts. */
+import "@fontsource/syne/700.css";
+import "@fontsource/syne/800.css";
+import "@fontsource/dm-sans/400.css";
+import "@fontsource/dm-sans/500.css";
+import "@fontsource/dm-sans/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+
+const links = [
+  { href: "/", label: "Home" },
+  { href: "/getting-started/introduction/overview/", label: "Notes" },
+  { href: "/tools/", label: "Tools" },
+  { href: "/about/", label: "About" },
+];
+---
+
+<header class="as-bar">
+  <div class="as-bar__inner">
+    <a class="as-bar__brand" href="/appsec/" aria-label="AppSec journal home">
+      <span class="as-bar__logo">v0iid</span>
+      <span class="as-bar__issue">appsec<span>/journal</span></span>
+    </a>
+    <nav class="as-bar__nav" aria-label="Site">
+      {links.map((l) => <a href={l.href}>{l.label}</a>)}
+    </nav>
+    <div class="as-bar__actions"><slot /></div>
+  </div>
+</header>
+
+<style>
+  .as-bar {
+    position: sticky;
+    top: 0;
+    z-index: var(--sl-z-index-navbar, 10);
+    border-bottom: 1px solid var(--as-line);
+    background: color-mix(in srgb, var(--as-bg) 85%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .as-bar__inner {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    max-width: 76rem;
+    height: var(--sl-nav-height, 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .as-bar__brand {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .as-bar__logo {
+    font-family: var(--as-display);
+    font-size: 1.2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--as-text);
+  }
+
+  .as-bar__issue {
+    font-family: var(--as-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--as-accent);
+  }
+
+  .as-bar__issue span {
+    color: var(--as-subtle);
+  }
+
+  .as-bar__nav {
+    display: flex;
+    gap: 1.5rem;
+    margin-left: auto;
+    font-family: var(--as-sans);
+    font-size: 0.875rem;
+  }
+
+  .as-bar__nav a {
+    color: var(--as-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .as-bar__nav a:hover {
+    color: var(--as-accent);
+  }
+
+  .as-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .as-bar__actions:empty {
+    display: none;
+  }
+
+  @media (max-width: 640px) {
+    .as-bar__inner {
+      gap: 1rem;
+      padding: 0 1rem;
+    }
+
+    .as-bar__issue span,
+    .as-bar__nav a:nth-child(n + 2) {
+      display: none;
+    }
+  }
+</style>
