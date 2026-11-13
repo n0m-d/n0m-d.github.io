@@ -1,0 +1,69 @@
+---
+/**
+ * Font loading for the standalone pages (home, about, appsec, malware).
+ *
+ * 1. Preloads the exact @fontsource woff2 files a page needs above the fold, so they
+ *    download alongside the CSS instead of after it.
+ * 2. Holds the page invisible until those faces are ready, then fades it in once, so
+ *    there is no fallback-font flash and no visible swap. Never waits longer than
+ *    MAX_WAIT; without JavaScript nothing is hidden.
+ *
+ * Usage, inside <head>:  <FontPreload fonts={["syne-800", "mono-400"]} />
+ */
+import syne700 from "@fontsource/syne/files/syne-latin-700-normal.woff2?url";
+import syne800 from "@fontsource/syne/files/syne-latin-800-normal.woff2?url";
+import mono400 from "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2?url";
+import mono500 from "@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2?url";
+import dm400 from "@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2?url";
+import dm500 from "@fontsource/dm-sans/files/dm-sans-latin-500-normal.woff2?url";
+import dm700 from "@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2?url";
+
+const FONTS = {
+  "syne-700": { url: syne700, face: '700 1em "Syne"' },
+  "syne-800": { url: syne800, face: '800 1em "Syne"' },
+  "mono-400": { url: mono400, face: '400 1em "JetBrains Mono"' },
+  "mono-500": { url: mono500, face: '500 1em "JetBrains Mono"' },
+  "dm-400": { url: dm400, face: '400 1em "DM Sans"' },
+  "dm-500": { url: dm500, face: '500 1em "DM Sans"' },
+  "dm-700": { url: dm700, face: '700 1em "DM Sans"' },
+} as const;
+
+interface Props {
+  fonts: (keyof typeof FONTS)[];
+}
+
+const { fonts } = Astro.props;
+const faces = fonts.map((f) => FONTS[f].face);
+const MAX_WAIT = 1500;
+---
+
+{fonts.map((f) => <link rel="preload" href={FONTS[f].url} as="font" type="font/woff2" crossorigin />)}
+
+<style is:inline>
+  html.fonts-pending body { opacity: 0; }
+  html.fonts-ready body { transition: opacity 0.45s ease; }
+  @media (prefers-reduced-motion: reduce) {
+    html.fonts-ready body { transition: none; }
+  }
+</style>
+
+<script is:inline define:vars={{ faces, MAX_WAIT }}>
+  (function () {
+    var root = document.documentElement;
+    var shown = false;
+    function show() {
+      if (shown) return;
+      shown = true;
+      root.classList.add("fonts-ready");
+      root.classList.remove("fonts-pending");
+    }
+    if (!document.fonts || !document.fonts.load) return;
+    root.classList.add("fonts-pending");
+    setTimeout(show, MAX_WAIT);
+    function wait() {
+      Promise.all(faces.map(function (f) { return document.fonts.load(f); })).then(show, show);
+    }
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wait);
+    else wait();
+  })();
+</script>

@@ -3,12 +3,14 @@ import "@fontsource/syne/700.css";
 import "@fontsource/syne/800.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
+import FontPreload from "../components/FontPreload.astro";
 import { Image } from "astro:assets";
 import { sigils } from "../data/sigils";
 
 const sections = [
   { cmd: "notes", href: "/getting-started/introduction/overview/" },
   { cmd: "appsec", href: "/appsec/" },
+  { cmd: "malware", href: "/malware/" },
   { cmd: "tools", href: "/tools/" },
   { cmd: "about", href: "/about/" },
 ];
@@ -30,6 +32,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <FontPreload fonts={["syne-700", "syne-800", "mono-400", "mono-500"]} />
     <title>About — v0iid</title>
     <meta
       name="description"
@@ -1058,7 +1061,7 @@ const pad = (n: number) => String(n).padStart(2, "0");
           right: var(--pad);
           transform: none;
           flex-direction: row;
-          gap: 1rem;
+          gap: 0.75rem;
         }
         .rail::before,
         .rail::after,
@@ -1067,10 +1070,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
         .rail__ch {
           writing-mode: horizontal-tb;
           padding: 0;
-          font-size: 0.8rem;
-          letter-spacing: 0.1em;
+          font-size: 0.72rem;
+          letter-spacing: 0.04em;
         }
-        .rail__ch:hover { letter-spacing: 0.1em; }
+        .rail__ch:hover { letter-spacing: 0.04em; }
         .rail__ch[aria-current="page"] {
           text-decoration: underline;
           text-decoration-color: var(--tv);

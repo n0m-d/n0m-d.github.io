@@ -1,7 +1,11 @@
 ---
 import Default from "@astrojs/starlight/components/PageTitle.astro";
 import PostHeader from "../appsec/PostHeader.astro";
+import MalwareHeader from "../malware/PostHeader.astro";
 import { isAppSecId } from "@/lib/appsec";
+import { isMalwareId } from "@/lib/malware";
+
+const { id } = Astro.locals.starlightRoute;
 ---
 
-{isAppSecId(Astro.locals.starlightRoute.id) ? <PostHeader /> : <Default />}
+{isAppSecId(id) ? <PostHeader /> : isMalwareId(id) ? <MalwareHeader /> : <Default />}

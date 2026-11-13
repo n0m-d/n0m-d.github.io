@@ -1,6 +1,8 @@
 ---
+import FontPreload from "../../components/FontPreload.astro";
 import "../../styles/appsec.css";
 import AppSecBar from "../../components/appsec/AppSecBar.astro";
+import ReviewPane from "../../components/appsec/ReviewPane.astro";
 import {
   KIND_LABEL,
   KIND_META,
@@ -40,6 +42,7 @@ const shortDate = (d?: Date) =>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <FontPreload fonts={["syne-800", "dm-400", "mono-400", "mono-500"]} />
     <title>AppSec Journal — v0iid</title>
     <meta
       name="description"
@@ -58,12 +61,17 @@ const shortDate = (d?: Date) =>
             {updated && <> · updated {formatDate(updated)}</>}
           </span>
         </div>
-        <h1 class="mast__title">
-          AppSec<span class="mast__title-mark">.</span>
-        </h1>
-        <p class="mast__deck">
-          Secure code review write-ups and essays on <br>Application security
-        </p>
+        <div class="mast__grid">
+          <div class="mast__copy">
+            <h1 class="mast__title">
+              AppSec<span class="mast__title-mark">.</span>
+            </h1>
+            <p class="mast__deck">
+              Secure code review write-ups and essays on <br>Application security
+            </p>
+          </div>
+          <ReviewPane />
+        </div>
       </header>
 
       {featured ? (
@@ -243,10 +251,24 @@ const shortDate = (d?: Date) =>
         color: var(--as-subtle);
       }
 
+      .mast__grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 2.5rem;
+        margin-top: 1.5rem;
+      }
+
+      /* the title scales with its own column, so it never runs under the review pane */
+      .mast__copy {
+        min-width: 0;
+        container-type: inline-size;
+      }
+
       .mast__title {
-        margin: 1.5rem 0 0;
+        margin: 0;
+        white-space: nowrap;
         font-family: var(--as-display);
-        font-size: clamp(3.25rem, 12.5vw, 10.5rem);
+        font-size: min(16.5cqi, 10.5rem);
         font-weight: 800;
         line-height: 0.82;
         letter-spacing: -0.06em;
@@ -585,6 +607,13 @@ const shortDate = (d?: Date) =>
 
       .foot a:hover {
         color: var(--as-accent);
+      }
+
+      @media (min-width: 64rem) {
+        .mast__grid {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 33rem);
+          align-items: center;
+        }
       }
 
       @media (min-width: 56rem) {

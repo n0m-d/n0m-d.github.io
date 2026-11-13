@@ -2,9 +2,12 @@
 import Breadcrumb from "../Breadcrumb.astro";
 import PostLayout from "../appsec/PostLayout.astro";
 import { isAppSecId } from "@/lib/appsec";
+import { isMalwareId } from "@/lib/malware";
+
+const { id } = Astro.locals.starlightRoute;
 ---
 
-{isAppSecId(Astro.locals.starlightRoute.id) ? (
+{isAppSecId(id) || isMalwareId(id) ? (
   <PostLayout>
     <slot name="right-sidebar" slot="rail" />
     <slot />

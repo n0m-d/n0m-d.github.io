@@ -4,6 +4,7 @@ import { docsSchema, i18nSchema } from "@astrojs/starlight/schema";
 import { glob } from "astro/loaders";
 import { defineCollection } from "astro:content";
 import { KINDS, SEVERITIES } from "./lib/appsec-constants";
+import { MW_CLASSES, MW_KINDS, THREAT_LEVELS } from "./lib/malware-constants";
 
 
 const ctaSection = defineCollection({
@@ -43,6 +44,21 @@ export const collections = {
             affected: z.string().optional(),
             fixed: z.string().optional(),
             cwe: z.array(z.union([z.string(), z.number()])).default([]),
+            tags: z.array(z.string()).default([]),
+            date: z.coerce.date().optional(),
+          })
+          .optional(),
+        // Optional metadata for Quarantine posts (see content/docs/malware/**/_*-template.mdx).
+        malware: z
+          .object({
+            kind: z.enum(MW_KINDS).optional(),
+            threat: z.enum(THREAT_LEVELS).optional(),
+            family: z.string().optional(),
+            class: z.enum(MW_CLASSES).optional(),
+            platform: z.string().optional(),
+            sha256: z.string().optional(),
+            first_seen: z.coerce.date().optional(),
+            attack: z.array(z.string()).default([]),
             tags: z.array(z.string()).default([]),
             date: z.coerce.date().optional(),
           })
