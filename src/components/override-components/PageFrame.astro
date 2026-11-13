@@ -4,13 +4,17 @@ import CTA from "../CTA.astro";
 import SidebarNav from "../SidebarNav.astro";
 import ImageMod from "../ImageMod.astro";
 import AppSecFrame from "../appsec/AppSecFrame.astro";
+import MalwareFrame from "../malware/MalwareFrame.astro";
 import { isAppSecId } from "@/lib/appsec";
+import { isMalwareId } from "@/lib/malware";
 
 const { hasSidebar, id } = Astro.locals.starlightRoute;
 ---
 
 {isAppSecId(id) ? (
 <AppSecFrame><slot /></AppSecFrame>
+) : isMalwareId(id) ? (
+<MalwareFrame><slot /></MalwareFrame>
 ) : (
 <div class="page sl-flex">
   {

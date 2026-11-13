@@ -1,0 +1,414 @@
+---
+/**
+ * Live code-review pane for the /appsec/ masthead. Loops through a real review:
+ * taint source → propagation → SQL sink flagged (CWE-89) → parameterized fix → resolved.
+ * The code is valid Express + node-postgres; `db.query(text, values)` is pg's real API.
+ */
+
+// tiny hand highlighter: [class, text] pairs → HTML
+type Tok = [string, string] | string;
+const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const line = (...toks: Tok[]) =>
+  toks.map((t) => (typeof t === "string" ? esc(t) : `<span class="${t[0]}">${esc(t[1])}</span>`)).join("");
+
+const lines: { n: string; html: string; kind?: "del" | "add" | "sink" }[] = [
+  { n: "1", html: line(["k", "import"], " { Router } ", ["k", "from"], " ", ["s", '"express"'], ";") },
+  { n: "2", html: line(["k", "import"], " { db } ", ["k", "from"], " ", ["s", '"../db"'], ";") },
+  { n: "3", html: "" },
+  { n: "4", html: line(["k", "export const"], " search = ", ["f", "Router"], "();") },
+  { n: "5", html: "" },
+  {
+    n: "6",
+    html: line("search.", ["f", "get"], "(", ["s", '"/search"'], ", ", ["k", "async"], " (req, res) => {"),
+  },
+  {
+    n: "7",
+    html: line(
+      "  ",
+      ["k", "const"],
+      " ",
+      ["t t-mid", "q"],
+      " = ",
+      ["f", "String"],
+      "(",
+      ["t t-src", "req.query.q"],
+      " ?? ",
+      ["s", '""'],
+      ");"
+    ),
+  },
+  {
+    n: "8",
+    html: line("  ", ["k", "const"], " ", ["t t-mid2", "like"], " = ", ["s", "`%${"], ["t t-mid", "q"], ["s", "}%`"], ";"),
+  },
+  { n: "9", html: line("  ", ["k", "const"], " rows = ", ["k", "await"], " db.", ["f", "query"], "(") },
+  {
+    n: "10",
+    kind: "del",
+    html: line(
+      "    ",
+      ["s", "`SELECT id, name FROM products WHERE name LIKE '${"],
+      ["t t-sink", "like"],
+      ["s", "}'`"]
+    ),
+  },
+  {
+    n: "10",
+    kind: "add",
+    html: line("    ", ["s", '"SELECT id, name FROM products WHERE name LIKE $1"'], ", [like]"),
+  },
+  { n: "11", html: "  );" },
+  { n: "12", html: line("  res.", ["f", "json"], "(rows);") },
+  { n: "13", html: "});" },
+];
+---
+
+<figure class="rv" data-review aria-label="Animated secure code review: user input from req.query.q flows into a raw SQL string (CWE-89) and is fixed with a parameterized query">
+  <figcaption class="rv__bar">
+    <span class="rv__file"><i aria-hidden="true"></i>src/routes/search.ts</span>
+    <span class="rv__state" aria-hidden="true">
+      <span class="st st--scan">tracing input…</span>
+      <span class="st st--block">1 blocking</span>
+      <span class="st st--ok">approved</span>
+    </span>
+  </figcaption>
+
+  <div class="rv__code" aria-hidden="true">
+    {lines.map((l) => (
+      <>
+        <div class:list={["ln", l.kind && `ln--${l.kind}`]}>
+          <span class="ln__n">{l.n}</span>
+          <span class="ln__m"></span>
+          <code set:html={l.html || " "} />
+        </div>
+        {l.kind === "add" && (
+          <div class="rc">
+            <div class="rc__inner">
+              <span class="rc__who">v0iid</span>
+              <span class="rc__tag rc__tag--block">blocking · CWE-89</span>
+              <span class="rc__tag rc__tag--ok">resolved</span>
+              <p class="rc__msg rc__msg--block">
+                <code>req.query.q</code> reaches a raw SQL string. Any caller controls the <code>WHERE</code> clause.
+              </p>
+              <p class="rc__msg rc__msg--ok">Parameterized with <code>$1</code>. The driver sends the value separately from the SQL.</p>
+            </div>
+          </div>
+        )}
+      </>
+    ))}
+  </div>
+
+  <div class="rv__foot" aria-hidden="true">
+    <span class="rv__flow">
+      <b class="f1">source</b><i>→</i><b class="f2">propagate</b><i>→</i><b class="f3">sink</b><i>→</i><b class="f4">fix</b>
+    </span>
+    <span>CWE-89 · SQL injection</span>
+  </div>
+</figure>
+
+<script>
+  // steps: 1 source, 2 propagate, 3 sink + comment, 4 diff, 5 resolved
+  const DURATIONS = [1400, 1500, 1500, 2800, 2400, 3200];
+
+  const run = (pane: HTMLElement) => {
+    if (pane.dataset.running) return;
+    pane.dataset.running = "1";
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      pane.classList.add("s1", "s2", "s3", "s4", "s5");
+      return;
+    }
+    let step = 0;
+    let visible = true;
+    let timer = 0;
+    const tick = () => {
+      step = (step + 1) % DURATIONS.length;
+      for (let i = 1; i <= 5; i++) pane.classList.toggle(`s${i}`, step >= i);
+      timer = window.setTimeout(next, DURATIONS[step]);
+    };
+    const next = () => (visible ? tick() : (timer = 0));
+    new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      if (visible && !timer) timer = window.setTimeout(tick, 400);
+    }).observe(pane);
+    timer = window.setTimeout(tick, DURATIONS[0]);
+  };
+
+  const boot = () => document.querySelectorAll<HTMLElement>("[data-review]").forEach(run);
+  boot();
+  document.addEventListener("astro:page-load", boot);
+</script>
+
+<style>
+  .rv {
+    --taint: var(--as-mark);
+    position: relative;
+    margin: 0;
+    border: 1px solid var(--as-line-strong);
+    background: var(--as-bg-deep);
+    font-family: var(--as-mono);
+    overflow: hidden;
+    align-self: start;
+  }
+
+  .rv__bar,
+  .rv__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.8rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--as-subtle);
+  }
+
+  .rv__bar {
+    border-bottom: 1px solid var(--as-line);
+  }
+
+  .rv__foot {
+    border-top: 1px solid var(--as-line);
+  }
+
+  .rv__file {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--as-text);
+    text-transform: none;
+    letter-spacing: 0.02em;
+  }
+
+  .rv__file i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--as-accent);
+    box-shadow: 0 0 8px var(--as-accent);
+  }
+
+  /* header status: one visible at a time */
+  .rv__state {
+    position: relative;
+    display: inline-grid;
+  }
+  .st {
+    grid-area: 1 / 1;
+    justify-self: end;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .st--scan { color: var(--as-cyan); }
+  .st--block { color: var(--as-del); }
+  .st--ok { color: var(--as-add); }
+  .rv:not(.s3) .st--scan,
+  .rv.s3:not(.s5) .st--block,
+  .rv.s5 .st--ok {
+    opacity: 1;
+  }
+
+  /* ── code ── */
+  /* height reserved for the expanded state (fix line + comment), so the page never shifts */
+  .rv__code {
+    min-height: 22.5rem;
+    padding: 0.6rem 0;
+  }
+
+  .ln {
+    display: grid;
+    grid-template-columns: 2.2rem 1rem minmax(0, 1fr);
+    align-items: center;
+    font-size: 0.66rem;
+    line-height: 1.75;
+    transition: background-color 0.4s ease, opacity 0.4s ease;
+  }
+
+  .ln code {
+    font-family: inherit;
+    white-space: pre;
+    overflow: hidden;
+    color: var(--as-muted);
+    background: none;
+    padding: 0;
+  }
+
+  .ln__n {
+    padding-right: 0.6rem;
+    text-align: right;
+    color: color-mix(in srgb, var(--as-subtle) 60%, transparent);
+  }
+
+  .ln__m {
+    text-align: center;
+    font-weight: 500;
+  }
+
+  .ln :global(.k) { color: var(--as-mark); }
+  .ln :global(.s) { color: var(--as-accent); }
+  .ln :global(.f) { color: var(--as-cyan); }
+
+  /* taint tokens light up step by step and stay lit */
+  .ln :global(.t) {
+    border-radius: 2px;
+    transition: background-color 0.35s ease, box-shadow 0.35s ease, color 0.35s ease;
+  }
+  .rv.s1 .ln :global(.t-src),
+  .rv.s2 .ln :global(.t-mid),
+  .rv.s2 .ln :global(.t-mid2),
+  .rv.s3 .ln :global(.t-sink) {
+    color: var(--as-text);
+    background: color-mix(in srgb, var(--taint) 24%, transparent);
+    box-shadow: 0 1px 0 var(--taint);
+  }
+
+  /* the sink line gets flagged… */
+  .rv.s3 .ln--del {
+    background: color-mix(in srgb, var(--as-del) 9%, transparent);
+  }
+  .rv.s3 .ln--del .ln__m::before {
+    content: "●";
+    color: var(--as-del);
+  }
+
+  /* …then removed, and the fix slides in */
+  .rv.s4 .ln--del {
+    background: color-mix(in srgb, var(--as-del) 14%, transparent);
+  }
+  .rv.s4 .ln--del .ln__m::before {
+    content: "−";
+  }
+  .rv.s4 .ln--del code {
+    opacity: 0.55;
+    text-decoration: line-through;
+    text-decoration-color: color-mix(in srgb, var(--as-del) 70%, transparent);
+  }
+
+  .ln--add {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.35s ease, background-color 0.4s ease;
+  }
+  .rv.s4 .ln--add {
+    max-height: 2em;
+    opacity: 1;
+    background: color-mix(in srgb, var(--as-add) 12%, transparent);
+  }
+  .ln--add .ln__m::before {
+    content: "+";
+    color: var(--as-add);
+  }
+
+  /* ── review comment ── */
+  .rc {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .rv.s3 .rc {
+    grid-template-rows: 1fr;
+  }
+  .rc__inner {
+    min-height: 0;
+    overflow: hidden;
+    margin: 0 0.9rem 0 3.2rem;
+  }
+  .rv.s3 .rc__inner {
+    margin-block: 0.45rem 0.55rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--as-del) 45%, transparent);
+    border-left-width: 3px;
+    background: var(--as-panel);
+  }
+  .rv.s5 .rc__inner {
+    border-color: color-mix(in srgb, var(--as-add) 45%, transparent);
+  }
+
+  .rc__who {
+    font-size: 0.62rem;
+    color: var(--as-text);
+  }
+  .rc__tag {
+    margin-left: 0.5rem;
+    font-size: 0.56rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .rc__tag--block { color: var(--as-del); }
+  .rc__tag--ok { color: var(--as-add); }
+  .rc__msg {
+    margin: 0.3rem 0 0;
+    font-family: var(--as-sans);
+    font-size: 0.74rem;
+    line-height: 1.45;
+    color: var(--as-muted);
+  }
+  .rc__msg code {
+    font-family: var(--as-mono);
+    font-size: 0.68rem;
+    color: var(--as-text);
+    background: none;
+    padding: 0;
+  }
+  .rc__tag--ok,
+  .rc__msg--ok,
+  .rv.s5 .rc__tag--block,
+  .rv.s5 .rc__msg--block {
+    display: none;
+  }
+  .rv.s5 .rc__tag--ok,
+  .rv.s5 .rc__msg--ok {
+    display: inline;
+  }
+  .rv.s5 .rc__msg--ok {
+    display: block;
+  }
+
+  /* ── flow breadcrumb ── */
+  .rv__flow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .rv__flow b {
+    font-weight: 500;
+    transition: color 0.3s ease;
+  }
+  .rv__flow i {
+    font-style: normal;
+    opacity: 0.5;
+  }
+  .rv.s1 .f1,
+  .rv.s2 .f2,
+  .rv.s3 .f3 {
+    color: var(--taint);
+  }
+  .rv.s4 .f4 {
+    color: var(--as-add);
+  }
+
+  @media (max-width: 40rem) {
+    .rv__code {
+      min-height: 20rem;
+    }
+    .ln {
+      font-size: 0.52rem;
+      grid-template-columns: 1.6rem 0.8rem minmax(0, 1fr);
+    }
+    .rc__inner {
+      margin-left: 2.4rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ln,
+    .ln--add,
+    .rc,
+    .st,
+    .ln :global(.t) {
+      transition: none;
+    }
+  }
+</style>

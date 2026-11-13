@@ -13,6 +13,10 @@
       "url": "/appsec/"
     },
     {
+      "name": "Malware",
+      "url": "/malware/"
+    },
+    {
       "name": "About",
       "url": "/about/"
     }

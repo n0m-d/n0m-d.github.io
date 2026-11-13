@@ -52,7 +52,7 @@ export default defineConfig({
       locales,
       sidebar: sidebar.main || [],
       routeMiddleware: "./src/starlightRouteData.ts",
-      customCss: ["./src/styles/global.css", "./src/styles/appsec.css", "./src/styles/view-transitions.css"],
+      customCss: ["./src/styles/global.css", "./src/styles/appsec.css", "./src/styles/malware.css", "./src/styles/view-transitions.css"],
       components: {
         Head: "./src/components/override-components/Head.astro",
         Header: "./src/components/override-components/Header.astro",
