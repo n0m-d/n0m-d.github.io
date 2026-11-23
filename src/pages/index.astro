@@ -51,74 +51,165 @@ const sections = [
     </footer>
 
     <script>
+      // Julia set z → z² + c. c glides back and forth just outside the Mandelbrot set,
+      // which opens and closes the spirals; the cursor nudges it slightly.
+      const VERT = `attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }`;
+      const FRAG = `
+        precision highp float;
+        uniform vec2 uRes;
+        uniform vec2 uC;
+        uniform float uRot;
+        uniform float uZoom;
+        uniform vec3 uHover; // cursor x, y (same units as uv) and strength 0..1
+
+        void main() {
+          float unit = min(uRes.x, uRes.y);
+          vec2 uv = (gl_FragCoord.xy - 0.5 * uRes) / unit;
+          // hover: a soft pool of light that also magnifies slightly
+          vec2 toCursor = uv - uHover.xy;
+          float glow = uHover.z * exp(-dot(toCursor, toCursor) * 22.0);
+          uv -= toCursor * glow * 0.16;
+          float cs = cos(uRot), sn = sin(uRot);
+          vec2 z = mat2(cs, -sn, sn, cs) * uv * uZoom;
+          vec2 dz = vec2(1.0, 0.0);
+          float m2 = dot(z, z);
+          float n = 0.0;
+          bool escaped = false;
+          bool onSet = false;
+          float peak = 1.0; // largest |dz|² seen along the orbit
+
+          for (int i = 0; i < 260; i++) {
+            dz = 2.0 * vec2(z.x * dz.x - z.y * dz.y, z.x * dz.y + z.y * dz.x);
+            z = vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y) + uC;
+            m2 = dot(z, z);
+            float g2 = dot(dz, dz);
+            peak = max(peak, g2);
+            if (m2 > 256.0) { escaped = true; break; }
+            // closer than any pixel: stop before the derivative overflows
+            if (g2 > 1e16) { onSet = true; break; }
+            // derivative has collapsed: truly inside a void, so stop early
+            if (g2 < 1e-8) break;
+            n += 1.0;
+          }
+
+          // Never escaped: the orbit's peak derivative says how close the edge is, so these
+          // pixels shade like their neighbours instead of flickering as black dots.
+          float near = onSet ? 0.0 : unit / (uZoom * sqrt(peak));
+          float light = exp(-near * 0.55) * 0.75 + exp(-near * 0.035) * 0.22;
+          if (escaped) {
+            float r = sqrt(m2);
+            float d = r * log(r) / max(length(dz), 1e-6); // distance to the set
+            float px = d * unit / uZoom;                  // …in pixels
+            float smoothN = n + 1.0 - log2(log2(r));
+            float filament = exp(-px * 0.55);
+            float halo = exp(-px * 0.035) * 0.22;
+            float rings = pow(0.5 + 0.5 * cos(smoothN * 6.2832), 24.0) * 0.1 * exp(-px * 0.006);
+            light = filament * 0.75 + halo + rings;
+          }
+          gl_FragColor = vec4(vec3(0.886, 0.91, 0.973) * min(light, 1.0) * (0.5 + 0.5 * glow), 1.0);
+        }`;
+
       const canvas = document.getElementById("void") as HTMLCanvasElement | null;
-      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      if (canvas) {
-        const ctx = canvas.getContext("2d")!;
-        let w = 0,
-          h = 0,
-          dpr = Math.min(devicePixelRatio || 1, 2);
-        const RINGS = 30;
-        const GROW = 1.19; // perspective spacing between frames
-        let phase = 0;
-        // Vanishing point, nudged by the cursor for parallax.
-        let vpx = 0,
-          vpy = 0,
-          tvx = 0,
-          tvy = 0;
+      const gl = canvas?.getContext("webgl", { antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "low-power" });
+
+      const compile = (gl: WebGLRenderingContext, type: number, src: string) => {
+        const sh = gl.createShader(type)!;
+        gl.shaderSource(sh, src);
+        gl.compileShader(sh);
+        return sh;
+      };
+
+      const start = (canvas: HTMLCanvasElement, gl: WebGLRenderingContext) => {
+        const prog = gl.createProgram()!;
+        gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT));
+        gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG));
+        gl.linkProgram(prog);
+        // Without a working shader the page simply stays black.
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return;
+        gl.useProgram(prog);
+        gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+        const loc = gl.getAttribLocation(prog, "p");
+        gl.enableVertexAttribArray(loc);
+        gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+        const u = (name: string) => gl.getUniformLocation(prog, name);
+        const uRes = u("uRes"), uC = u("uC"), uRot = u("uRot"), uZoom = u("uZoom"), uHover = u("uHover");
+
+        const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        // Fixed pixel budget, so large and high-DPI screens stay smooth.
+        const MAX_PIXELS = 1_600_000;
+        let t = 0;
+        let last = 0;
+        let mx = 0, my = 0, tx = 0, ty = 0;
+        let hx = 0, hy = 0, hover = 0, hoverTarget = 0;
+
+        const draw = () => {
+          // Ease out along an open inlet of the Mandelbrot set and back (80 s a round).
+          // The path never touches the set's edge, so the shape can't jump.
+          const u = 0.5 - 0.5 * Math.cos((t * 2 * Math.PI) / 80);
+          const a = 2.2 + 0.12 * u;
+          const r = 1.035 + 0.15 * u;
+          const re = r * (Math.cos(a) / 2 - Math.cos(2 * a) / 4);
+          const im = r * (Math.sin(a) / 2 - Math.sin(2 * a) / 4);
+          gl.uniform2f(uRes, canvas.width, canvas.height);
+          gl.uniform2f(uC, re + mx * 0.001, im + my * 0.001);
+          gl.uniform1f(uRot, t * 0.031);
+          gl.uniform1f(uZoom, 2.3 + 0.25 * Math.sin(t * 0.09));
+          const unit = 2 * Math.min(canvas.width, canvas.height);
+          gl.uniform3f(uHover, (hx * canvas.width) / unit, (hy * canvas.height) / unit, hover);
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        };
 
         const resize = () => {
-          w = canvas.clientWidth;
-          h = canvas.clientHeight;
-          canvas.width = w * dpr;
-          canvas.height = h * dpr;
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          const w = canvas.clientWidth, h = canvas.clientHeight;
+          const scale = Math.min(devicePixelRatio || 1, Math.sqrt(MAX_PIXELS / Math.max(1, w * h)));
+          canvas.width = Math.max(1, Math.round(w * scale));
+          canvas.height = Math.max(1, Math.round(h * scale));
+          gl.viewport(0, 0, canvas.width, canvas.height);
+          draw();
         };
         resize();
         addEventListener("resize", resize);
+        if (reduce) return;
+
         addEventListener(
           "pointermove",
           (e) => {
-            tvx = (e.clientX - w / 2) * 0.05;
-            tvy = (e.clientY - h / 2) * 0.05;
+            tx = (e.clientX / innerWidth) * 2 - 1;
+            ty = 1 - (e.clientY / innerHeight) * 2;
+            if (e.pointerType === "touch") return;
+            // appear at the cursor rather than sliding in from where it last left
+            if (hover < 0.02) {
+              hx = tx;
+              hy = ty;
+            }
+            hoverTarget = 1;
           },
           { passive: true }
         );
 
-        const frame = (cx: number, cy: number, half: number, rot: number, a: number) => {
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.rotate(rot);
-          ctx.strokeStyle = `rgba(226, 232, 248, ${a})`;
-          ctx.lineWidth = 1;
-          ctx.strokeRect(-half, -half, half * 2, half * 2);
-          ctx.restore();
-        };
+        document.documentElement.addEventListener("pointerleave", () => (hoverTarget = 0));
 
-        const draw = () => {
-          ctx.clearRect(0, 0, w, h);
-          vpx += (tvx - vpx) * 0.06;
-          vpy += (tvy - vpy) * 0.06;
-          const cx = w / 2 + vpx;
-          const cy = h / 2 + vpy;
-          const base = 10;
-          phase += 0.014;
-
-          for (let i = 0; i < RINGS; i++) {
-            const f = (i + (phase % 1)) ; // fractional depth
-            const scale = Math.pow(GROW, f);
-            const half = base * scale;
-            if (half > Math.hypot(w, h)) continue;
-            // fade in from the far point, fade out as the frame passes us
-            const k = f / RINGS;
-            const a = Math.sin(k * Math.PI) * 0.5;
-            const rot = f * 0.14; // twist with depth → wormhole
-            frame(cx, cy, half, rot, a);
-          }
-          if (!reduce) requestAnimationFrame(draw);
+        // 30 fps is plenty for this drift; rAF already stops in hidden tabs.
+        const FRAME_MS = 1000 / 30;
+        const loop = (now: number) => {
+          requestAnimationFrame(loop);
+          if (last && now - last < FRAME_MS - 3) return;
+          // clamp the step so returning to a background tab doesn't jump
+          const dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+          last = now;
+          t += dt;
+          mx += (tx - mx) * 0.08;
+          my += (ty - my) * 0.08;
+          hx += (tx - hx) * 0.16;
+          hy += (ty - hy) * 0.16;
+          hover += (hoverTarget - hover) * 0.08;
+          draw();
         };
-        draw();
-      }
+        requestAnimationFrame(loop);
+      };
+
+      if (canvas && gl) start(canvas, gl);
     </script>
 
     <style is:global>
@@ -164,14 +255,15 @@ const sections = [
         height: 100%;
         z-index: 0;
       }
-      /* Vanishing-point glow + outer darkness, so the tunnel recedes into nothing. */
+      /* Quiet the fractal behind the title and let it dissolve toward the edges. */
       .depth {
         position: fixed;
         inset: 0;
         z-index: 1;
         pointer-events: none;
         background:
-          radial-gradient(14% 14% at 50% 50%, rgba(var(--accent-rgb), 0.14), transparent 70%),
+          linear-gradient(rgba(0, 0, 0, 0.75), transparent 16%),
+          radial-gradient(max(46%, 20rem) 36% at 50% 50%, rgba(0, 0, 0, 0.85) 30%, transparent 100%),
           radial-gradient(120% 120% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
       }
 
@@ -224,7 +316,8 @@ const sections = [
         font-size: 0.74rem;
         letter-spacing: 0.26em;
         text-transform: uppercase;
-        color: var(--mute);
+        color: #a3a8b8;
+        text-shadow: 0 0 6px #000, 0 0 16px #000;
       }
       .title {
         margin: 0;
@@ -240,7 +333,8 @@ const sections = [
         margin: 2.4rem 0 0;
         font-size: 0.82rem;
         letter-spacing: 0.1em;
-        color: var(--mute);
+        color: #a3a8b8;
+        text-shadow: 0 0 6px #000, 0 0 16px #000;
       }
 
       /* ── Edge ── */
@@ -272,12 +366,6 @@ const sections = [
         .bar__nav { gap: 0.75rem; font-size: 0.72rem; letter-spacing: 0.04em; }
         .rights { display: none; }
         .edge { justify-content: center; }
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        .depth { background:
-          radial-gradient(14% 14% at 50% 50%, rgba(var(--accent-rgb), 0.14), transparent 70%),
-          radial-gradient(120% 120% at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.7) 100%); }
       }
     </style>
   </body>
